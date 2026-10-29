@@ -264,3 +264,76 @@ end $$;
 -- ------------------------------------------------------------
 -- create extension if not exists pg_cron;
 -- select cron.schedule('purge-old-trips', '0 4 * * *', $$select public.purge_old_trips();$$);
+
+-- ------------------------------------------------------------
+-- 9. EDICIÓN DE VIAJES Y SIN PRECIOS (migración trip_editing_and_no_prices)
+-- ------------------------------------------------------------
+revoke update on public.trips from authenticated;
+grant update (origin_city, origin_detail, dest_city, dest_detail, stops, departure_at, flexibility,
+              seats_total, vehicle, cost_mode, distance_km, description, status) on public.trips to authenticated;
+
+update public.trips set contribution_eur = 0 where contribution_eur <> 0;
+alter table public.trips drop constraint if exists trips_contribution_cap;
+alter table public.trips drop constraint if exists trips_no_price;
+alter table public.trips add constraint trips_no_price check (contribution_eur = 0);
+
+create or replace function public.trips_before_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.seats_total < old.seats_taken then
+    raise exception 'No puedes dejar menos plazas (%) que personas apuntadas (%)', new.seats_total, old.seats_taken;
+  end if;
+  if new.departure_at is distinct from old.departure_at and new.departure_at < now() then
+    raise exception 'La nueva hora de salida ya ha pasado';
+  end if;
+  if old.status = 'cancelado' and new.status <> 'cancelado' then
+    raise exception 'Un viaje cancelado no se puede reactivar';
+  end if;
+  if new.status <> 'cancelado' then
+    new.status := case when new.seats_taken >= new.seats_total then 'completo' else 'abierto' end;
+  end if;
+  return new;
+end $$;
+drop trigger if exists trips_before_update on public.trips;
+create trigger trips_before_update before update on public.trips
+  for each row execute function public.trips_before_update();
+
+create or replace function public.trips_after_update_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare changes text[] := '{}';
+begin
+  if not exists (select 1 from public.trip_members where trip_id = new.id) then return new; end if;
+  if new.status = 'cancelado' and old.status <> 'cancelado' then
+    insert into public.messages (trip_id, user_id, body, is_system) values (new.id, new.driver_id, 'El conductor ha cancelado el viaje', true);
+    return new;
+  end if;
+  if new.departure_at is distinct from old.departure_at then
+    changes := changes || ('salida: ' || to_char(new.departure_at at time zone 'Europe/Madrid', 'DD/MM HH24:MI'));
+  end if;
+  if new.origin_city is distinct from old.origin_city or new.dest_city is distinct from old.dest_city then
+    changes := changes || ('trayecto: ' || new.origin_city || ' → ' || new.dest_city);
+  end if;
+  if new.origin_detail is distinct from old.origin_detail or new.dest_detail is distinct from old.dest_detail then
+    changes := changes || 'zonas de salida o llegada'::text;
+  end if;
+  if new.seats_total is distinct from old.seats_total then changes := changes || ('plazas: ' || new.seats_total); end if;
+  if new.cost_mode is distinct from old.cost_mode then
+    changes := changes || (case when new.cost_mode = 'gratis' then 'ahora es gratis' else 'ahora es a pachas' end);
+  end if;
+  if new.stops is distinct from old.stops or new.flexibility is distinct from old.flexibility
+     or new.vehicle is distinct from old.vehicle or new.description is distinct from old.description then
+    changes := changes || 'otros detalles'::text;
+  end if;
+  if array_length(changes, 1) > 0 then
+    insert into public.messages (trip_id, user_id, body, is_system)
+    values (new.id, new.driver_id, 'El conductor ha modificado el viaje (' || array_to_string(changes, ', ') || ')', true);
+  end if;
+  return new;
+end $$;
+drop trigger if exists trips_after_update_notify on public.trips;
+create trigger trips_after_update_notify after update on public.trips
+  for each row execute function public.trips_after_update_notify();
+
+revoke execute on function public.trips_before_update() from public, anon, authenticated;
+revoke execute on function public.trips_after_update_notify() from public, anon, authenticated;
+alter table public.trips replica identity full;

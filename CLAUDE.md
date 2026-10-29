@@ -12,11 +12,13 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - Español con tildes correctas. Sin guiones largos en la prosa.
 - Una sola tipografía (Switzer, Fontshare). Paleta: fondo hueso `#e9e3d8`, tinta `#1f1917`, campo azul pizarra `#2f4a58`, acento mostaza `#e0a912`. Sin degradados, sin sombras en reposo, sin líneas finas como separadores.
 - El routing es por hash (`#/publicar`, `#/viaje/:id`), así que cualquier hosting estático sirve sin reglas de reescritura.
+- Sin precios: cada viaje es `gratis` o `compartir` ("a pachas"); el reparto se acuerda en el grupo. `contribution_eur` siempre es 0.
+- Vercel: proyecto `blablahelp` vinculado al repositorio; cada push a `main` publica en https://blablahelp.vercel.app
 - Nunca guardar teléfonos. Nunca poner la clave `service_role` en el frontend.
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 
 ## Estado
-- Supabase: proyecto `BlaBlaHelp` (ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema` y `harden_function_privileges`. URL y clave publicable ya están en `CAMINO_CONFIG`.
+- Supabase: proyecto `BlaBlaHelp` (ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`. URL y clave publicable ya están en `CAMINO_CONFIG`.
 - Pendiente: activar Google en Supabase > Authentication > Providers (necesita cliente OAuth de Google Cloud) y poner la URL de producción en Authentication > URL Configuration.
 
 ## Despliegue

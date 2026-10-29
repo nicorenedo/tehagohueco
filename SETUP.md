@@ -64,8 +64,6 @@ window.CAMINO_CONFIG = {
   contactEmail: "hola@blablahelp.es",   // aparece en legal, reportes y contacto
   siteName: "BlaBlaHelp",
   ownerName: "Nicolás Renedo de la Lastra", // titular en el aviso legal (obligatorio por LSSI)
-  fuelPriceReference: 1.55,            // €/litro de referencia; actualízalo cuando cambie
-  fuelPriceUpdated: "octubre de 2026"
 };
 ```
 
@@ -98,7 +96,6 @@ Si algo falla, abre la consola del navegador (F12 > Console): los errores de Sup
 
 ## 6. Mantenimiento mínimo
 
-- **Precio del combustible**: edita `fuelPriceReference` y `fuelPriceUpdated` en `index.html` cuando quieras ajustarlo (puedes guiarte por el Geoportal de Gasolineras del Ministerio: https://geoportalgasolineras.es). El conductor puede modificarlo al publicar; el tope en base de datos (0,07 €/km por pasajero) impide abusos aunque alguien manipule el navegador.
 - **Limpieza de datos**: los viajes caducan a los 30 días de su salida. Para que se borren solos, activa la extensión `pg_cron` en Supabase (Database > Extensions) y descomenta las dos últimas líneas de `schema.sql`. Si no, ejecuta `select public.purge_old_trips();` en el SQL Editor de vez en cuando.
 - **Reportes**: llegan al correo de `contactEmail`. Para expulsar a alguien, en Supabase > Authentication > Users puedes borrar su usuario; se eliminan en cascada sus viajes, inscripciones y mensajes.
 - **Ver la actividad**: Supabase > Table Editor > `trips` muestra todos los viajes; `messages` solo deberías consultarla ante un reporte.
@@ -111,13 +108,12 @@ No soy abogado y esto no sustituye una revisión profesional, pero estos son los
 - **LSSI**: el aviso legal identifica al titular (persona física) con un correo de contacto. Es obligatorio y ya está, pero confirma que quieres aparecer con nombre completo; es lo que exige la ley para quien presta un servicio de la sociedad de la información, aunque sea gratuito.
 - **RGPD / LOPDGDD**: la política de privacidad describe datos, finalidades, base jurídica, encargados (Supabase en la UE, Google), conservación y derechos. Tratas pocos datos y con minimización real (no hay teléfonos; el correo no se muestra). Como persona física sin actividad económica no necesitas DPO ni registro ante la AEPD, pero sí debes atender los derechos que te pidan por correo. Si en algún momento usaras analítica (Google Analytics, etc.) tendrías que añadir banner de cookies; ahora mismo no hace falta.
 - **Responsabilidad**: las condiciones dejan claro que eres un mero intermediario técnico sin participación en el acuerdo, sin verificación de conductores y sin gestión de pagos, y cada conductor acepta tres compromisos explícitos al publicar. Esto es lo habitual en este tipo de plataformas y te protege razonablemente, pero no es una inmunidad absoluta: si recibes un reporte de conducta peligrosa y no actúas, ahí sí podrías tener un problema. Atiende los reportes.
-- **Transporte**: compartir gastos reales sin beneficio es legal en España y no requiere autorización de transporte. El tope automático (combustible estimado más peajes, dividido entre todos los ocupantes incluido el conductor, con un máximo absoluto de 0,07 €/km) está pensado precisamente para que ningún viaje pueda considerarse actividad lucrativa.
+- **Transporte**: compartir gastos reales sin beneficio es legal en España y no requiere autorización de transporte. La web no fija ni cobra precios: cada viaje es gratis o a pachas, y el reparto de gastos se acuerda entre los viajeros en el grupo privado. La base de datos impide guardar cualquier importe.
 - **Nombre y marca**: comprueba que el nombre que elijas no esté registrado (https://www.oepm.es). "BlaBlaHelp" es una propuesta; es trivial cambiarlo en `siteName` y en el `<title>`.
 
 ## 8. Mejoras posibles para una segunda versión
 
 - Avisos por correo cuando alguien se apunta a tu viaje o el conductor cancela (Supabase Edge Function + Resend).
 - Valoraciones entre viajeros tras el viaje.
-- Precio del combustible en tiempo real desde el Geoportal del Ministerio (vía Edge Function, porque la API no permite llamadas directas desde el navegador).
 - Búsqueda por radio ("a menos de 30 km de...") usando las coordenadas ya incluidas en la lista de localidades.
 - Versión instalable en móvil (PWA): bastan un `manifest.json` y un service worker.
