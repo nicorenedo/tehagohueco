@@ -21,7 +21,7 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 
 ## Estado
 - Supabase: proyecto de Supabase llamado `BlaBlaHelp` (nombre interno; ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`, `p1_tables_confirm_private_demand`, `p2_join_confirm_stats`, `p4_realtime_private`, `trip_coordinates` y el SQL manual `supabase/migrations/20261029b_quitar_y_liberar.sql`. Las migraciones que contienen borrados (`delete`) hay que ejecutarlas a mano en el SQL Editor: el conector pide una confirmación que falla. URL y clave publicable ya están en `CAMINO_CONFIG`.
-- Google OAuth activo y publicado. Antes se llamaba BlaBlaHelp y vivía en blablahelp.vercel.app; ese dominio sigue sirviendo la misma web. Site URL y Redirect URLs deben apuntar a https://tehagohueco.vercel.app
+- Google OAuth activo y publicado. Antes se llamaba BlaBlaHelp y vivía en blablahelp.vercel.app; ese dominio redirige con 308 a tehagohueco.vercel.app (regla en `vercel.json`). No usar el nombre antiguo en ningún sitio. Site URL y Redirect URLs deben apuntar a https://tehagohueco.vercel.app
 
 ## Despliegue
 1. Supabase: activar Google en Authentication > Providers, configurar Site URL y Redirect URLs con el dominio final.

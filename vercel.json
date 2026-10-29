@@ -31,5 +31,18 @@
       "source": "/aviso-legal",
       "destination": "/index.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "blablahelp.vercel.app"
+        }
+      ],
+      "destination": "https://tehagohueco.vercel.app/:path*",
+      "permanent": true
+    }
   ]
 }
