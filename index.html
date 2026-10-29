@@ -732,6 +732,8 @@ async function route(){
   if(cleanup){ cleanup(); cleanup = null; }
   if(!firstRoute && !matchMedia("(prefers-reduced-motion: reduce)").matches){ app.classList.add("leaving"); await new Promise(r => setTimeout(r, 150)); requestAnimationFrame(() => app.classList.remove("leaving")); }
   firstRoute = false;
+  const CLEAN = { "/privacidad":"/legal/privacidad", "/condiciones":"/legal/condiciones", "/aviso-legal":"/legal/aviso" };
+  if(!location.hash && CLEAN[location.pathname.replace(/\/$/,"")]){ history.replaceState(null,"","/#"+CLEAN[location.pathname.replace(/\/$/,"")]); }
   const hash = location.hash.replace(/^#/, "") || "/";
   const [path, qs] = hash.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs||""));
