@@ -38,10 +38,21 @@
       "has": [
         {
           "type": "host",
+          "value": "tehagohueco.vercel.app"
+        }
+      ],
+      "destination": "https://www.tehagohueco.es/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
           "value": "blablahelp.vercel.app"
         }
       ],
-      "destination": "https://tehagohueco.vercel.app/:path*",
+      "destination": "https://www.tehagohueco.es/:path*",
       "permanent": true
     }
   ]
