@@ -11,6 +11,7 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 ## Reglas del proyecto
 - Español con tildes correctas. Sin guiones largos en la prosa.
 - Una sola tipografía (Switzer, Fontshare). Paleta: fondo hueso `#e9e3d8`, tinta `#1f1917`, campo azul pizarra `#2f4a58`, acento mostaza `#e0a912`. Sin degradados, sin sombras en reposo, sin líneas finas como separadores.
+- Localidades: `municipios.json` (8.132 municipios del INE, paquete `spanish-cities-info`, licencia ISC) se carga bajo demanda; las ciudades de `CITIES` en `index.html` tienen coordenadas de núcleo urbano y se priorizan. Los viajes guardan `origin_lat/lng` y `dest_lat/lng`; la búsqueda filtra por distancia (35 km con "Incluir a 35 km").
 - El routing es por hash (`#/publicar`, `#/viaje/:id`), así que cualquier hosting estático sirve sin reglas de reescritura.
 - Sin precios: cada viaje es `gratis` o `compartir` ("a pachas"); el reparto se acuerda en el grupo. `contribution_eur` siempre es 0.
 - Vercel: proyecto `blablahelp` vinculado al repositorio; cada push a `main` publica en https://blablahelp.vercel.app
@@ -18,8 +19,8 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 
 ## Estado
-- Supabase: proyecto `BlaBlaHelp` (ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`. URL y clave publicable ya están en `CAMINO_CONFIG`.
-- Pendiente: activar Google en Supabase > Authentication > Providers (necesita cliente OAuth de Google Cloud) y poner la URL de producción en Authentication > URL Configuration.
+- Supabase: proyecto `BlaBlaHelp` (ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`, `p1_tables_confirm_private_demand`, `p2_join_confirm_stats`, `p4_realtime_private`, `trip_coordinates` y el SQL manual `supabase/migrations/20261029b_quitar_y_liberar.sql`. Las migraciones que contienen borrados (`delete`) hay que ejecutarlas a mano en el SQL Editor: el conector pide una confirmación que falla. URL y clave publicable ya están en `CAMINO_CONFIG`.
+- Google OAuth activo y publicado; Site URL y Redirect URLs apuntan a https://blablahelp.vercel.app
 
 ## Despliegue
 1. Supabase: activar Google en Authentication > Providers, configurar Site URL y Redirect URLs con el dominio final.

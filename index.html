@@ -147,7 +147,7 @@ body.home header.top{display:none}
 .search .swap:active{transform:scale(.94)}
 .search .btn{height:60px;border-radius:0;padding:0 32px;font-size:var(--step-lead);font-weight:600}
 @media (max-width:960px){.search{grid-template-columns:1fr auto 1fr}.search .btn{grid-column:1/-1}}
-@media (max-width:560px){.search{grid-template-columns:1fr 1fr}.search .field.origin,.search .field.dest{grid-column:1/-1}.search .swap{display:none}}
+@media (max-width:560px){.search{grid-template-columns:1fr 1fr}.search .origin,.search .dest{grid-column:1/-1}.search .swap{display:none}}
 
 /* ---------- Filtros rápidos ---------- */
 .filters{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:16px;align-items:center}
@@ -420,6 +420,24 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 @media (max-width:520px){.drow{grid-template-columns:1fr auto}.dbar{grid-column:1/-1;order:3}}
 @media (prefers-reduced-motion:reduce){.dbar i{animation:none}}
 
+/* ---------- Autocompletado de localidades ---------- */
+.combo{position:relative}
+.combo input{padding-right:44px!important}
+.combo-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer}
+@media (hover:hover){.combo-clear:hover{background:var(--surface-2);color:var(--ink)}}
+.combo-list{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:var(--paper);border-radius:16px;box-shadow:0 18px 40px -18px rgba(31,25,23,.45);max-height:min(360px,55vh);overflow:auto;transform-origin:top center;animation:comboIn 160ms var(--ease-out)} /* taste-skill-ignore: dropdown */
+.combo-list li{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;font-size:var(--step-body);letter-spacing:-.01em}
+.combo-list li b{font-weight:500}
+.combo-list li span{font-size:var(--step-small);color:var(--muted);white-space:nowrap}
+.combo-list li.on,.combo-list li[data-i]:hover{background:var(--surface)}
+.combo-list .combo-empty{color:var(--muted);font-size:var(--step-small);cursor:default}
+@keyframes comboIn{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.combo-list{animation:none}}
+.search .combo input{height:60px;border:0;background:var(--surface);border-radius:18px;padding:0 16px;font-size:var(--step-lead);font-weight:500;letter-spacing:-.02em;width:100%;outline:none}
+.search .combo input:focus{outline:2px solid var(--ink);outline-offset:-2px}
+.search .combo input::placeholder{color:var(--muted);font-weight:400}
+.trip .near{font-size:var(--step-small);font-weight:500;color:var(--field);background:var(--bg);padding:6px 10px;border-radius:999px;align-self:flex-start}
+
 /* ---------- Entradas al hacer scroll ---------- */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
 .reveal.in{opacity:1;transform:none}
@@ -534,19 +552,138 @@ const CITIES = [
   ["Mérida", 38.9161, -6.3437], ["Badajoz", 38.8794, -6.9707], ["Cáceres", 39.4753, -6.3724], ["Albacete", 38.9943, -1.8585], ["Cuenca", 40.0704, -2.1374], ["Murcia", 37.9922, -1.1307]
 ].map(([name, lat, lng]) => ({ name, lat, lng }));
 const cityByName = n => CITIES.find(c => c.name === n);
-const CITY_GROUPS = (() => {
-  const sizes = [["Madrid",15],["Toledo",12],["Ciudad Real",12],["Córdoba",11],["Sevilla",11],["Málaga",11],["Cádiz",12],["Huelva",7],["Granada",7],["Jaén",9],["Almería",7],["Otras",6]];
-  let i = 0; return sizes.map(([label,n]) => { const items = CITIES.slice(i, i+n); i += n; return { label, items }; });
-})();
-const PROVINCE_HINT = { Madrid:"Madrid", Toledo:"Toledo", "Ciudad Real":"Ciudad Real", Córdoba:"Córdoba", Sevilla:"Sevilla", Málaga:"Málaga", Cádiz:"Cádiz", Huelva:"Huelva", Granada:"Granada", Jaén:"Jaén", Almería:"Almería" };
-
 function haversine(a, b){
   const R = 6371, toRad = d => d*Math.PI/180;
   const dLat = toRad(b.lat-a.lat), dLng = toRad(b.lng-a.lng);
   const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
   return 2*R*Math.asin(Math.sqrt(s));
 }
-function roadKm(o, d){ const a = cityByName(o), b = cityByName(d); if(!a||!b) return 0; return Math.round(haversine(a,b)*1.22); }
+
+/* ---------------- Todos los municipios de España (INE) ---------------- */
+const PROV_DISPLAY = { "Alacant":"Alicante", "Castelló":"Castellón", "València":"Valencia", "Araba":"Álava", "Bizkaia":"Vizcaya", "Gipuzkoa":"Guipúzcoa", "Illes Balears":"Baleares", "Santa Cruz de Tenerife":"Tenerife" };
+const norm = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9ñ ]+/g, " ").replace(/\s+/g, " ").trim();
+const MAIN_CITIES = new Set(CITIES.map(c => c.name));
+const CORRIDOR_PROVS = new Set(["Madrid","Toledo","Ciudad Real","Córdoba","Sevilla","Málaga","Cádiz","Huelva","Granada","Jaén","Almería","Badajoz"]);
+let PLACES = null, PLACE_BY_LABEL = null, placesPromise = null;
+function loadPlaces(){
+  if(placesPromise) return placesPromise;
+  placesPromise = fetch("municipios.json", { cache:"force-cache" }).then(r => { if(!r.ok) throw new Error("municipios"); return r.json(); }).then(data => {
+    const count = {}; data.m.forEach(([n]) => count[n] = (count[n]||0) + 1);
+    PLACES = data.m.map(([name, pi, lat, lng]) => {
+      const prov = PROV_DISPLAY[data.p[pi]] || data.p[pi];
+      const label = count[name] > 1 ? `${name} (${prov})` : name;
+      return { name, prov, lat, lng, label, n: norm(name), main: MAIN_CITIES.has(name) };
+    });
+    PLACE_BY_LABEL = new Map(PLACES.map(p => [p.label, p]));
+    return PLACES;
+  }).catch(() => {
+    PLACES = CITIES.map(c => ({ name:c.name, prov:"", lat:c.lat, lng:c.lng, label:c.name, n:norm(c.name), main:true }));
+    PLACE_BY_LABEL = new Map(PLACES.map(p => [p.label, p]));
+    return PLACES;
+  });
+  return placesPromise;
+}
+function findPlace(label){
+  if(!label) return null;
+  if(PLACE_BY_LABEL && PLACE_BY_LABEL.has(label)) return PLACE_BY_LABEL.get(label);
+  const c = cityByName(label); if(c) return { name:c.name, label:c.name, lat:c.lat, lng:c.lng, prov:"" };
+  if(PLACES){ const k = norm(label); return PLACES.find(p => p.n === k) || null; }
+  return null;
+}
+function searchPlaces(q, limit=8){
+  const k = norm(q);
+  const pool = PLACES || CITIES.map(c => ({ name:c.name, prov:"", lat:c.lat, lng:c.lng, label:c.name, n:norm(c.name), main:true }));
+  if(!k) return pool.filter(p => p.main).slice(0, limit);
+  const out = [];
+  for(const p of pool){
+    let score;
+    if(p.n === k) score = 0;
+    else if(p.n.startsWith(k)) score = 1;
+    else if((" " + p.n).includes(" " + k)) score = 2;
+    else if(p.n.includes(k)) score = 3;
+    else continue;
+    if(p.main) score -= 0.6;
+    else if(CORRIDOR_PROVS.has(p.prov)) score -= 0.3;
+    out.push([score, p.n.length, p]);
+  }
+  out.sort((a,b) => a[0]-b[0] || a[1]-b[1]);
+  return out.slice(0, limit).map(x => x[2]);
+}
+function tripPoints(t){
+  const a = (t.origin_lat != null && t.origin_lng != null) ? { lat:t.origin_lat, lng:t.origin_lng } : findPlace(t.origin_city);
+  const b = (t.dest_lat != null && t.dest_lng != null) ? { lat:t.dest_lat, lng:t.dest_lng } : findPlace(t.dest_city);
+  return { a, b };
+}
+const roadKmPts = (a, b) => (a && b) ? Math.round(haversine(a, b) * 1.22) : 0;
+function roadKm(o, d){ return roadKmPts(findPlace(o), findPlace(d)); }
+
+/* Campo de localidad con autocompletado (sustituye a los desplegables) */
+function placeField(id, label, value, { placeholder = "Escribe una localidad", any = false, required = false } = {}){
+  const p = value ? findPlace(value) : null;
+  return `<div class="field place-field">
+    <label for="${id}">${label}</label>
+    <div class="combo" data-combo="${id}">
+      <input id="${id}" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${id}-list" autocomplete="off" autocapitalize="words" spellcheck="false"
+        placeholder="${esc(any ? "Cualquier localidad" : placeholder)}" value="${esc(value||"")}" data-label="${esc(p ? p.label : (value||""))}" ${p ? `data-lat="${p.lat}" data-lng="${p.lng}"` : ""} ${required?"required":""}>
+      <button type="button" class="combo-clear${value?"":" hidden"}" aria-label="Borrar ${esc(label.toLowerCase())}" tabindex="-1">×</button>
+      <ul id="${id}-list" class="combo-list" role="listbox" hidden></ul>
+    </div>
+  </div>`;
+}
+function bindPlace(id, onPick){
+  const input = document.getElementById(id); if(!input) return;
+  const box = input.closest(".combo"), list = document.getElementById(id + "-list"), clear = box.querySelector(".combo-clear");
+  let items = [], active = -1;
+  const close = () => { list.hidden = true; input.setAttribute("aria-expanded", "false"); active = -1; };
+  const pick = p => {
+    input.value = p.label; input.dataset.label = p.label; input.dataset.lat = p.lat; input.dataset.lng = p.lng;
+    clear.classList.remove("hidden"); close(); onPick && onPick(p);
+  };
+  const render = () => {
+    items = searchPlaces(input.value);
+    if(!items.length){ list.innerHTML = `<li class="combo-empty">No encontramos esa localidad. Prueba sin tildes o con el nombre del municipio.</li>`; }
+    else list.innerHTML = items.map((p, i) => `<li role="option" id="${id}-o${i}" class="${i===active?"on":""}" data-i="${i}"><b>${esc(p.name)}</b>${p.prov?`<span>${esc(p.prov)}</span>`:""}</li>`).join("");
+    list.hidden = false; input.setAttribute("aria-expanded", "true");
+    input.setAttribute("aria-activedescendant", active >= 0 ? `${id}-o${active}` : "");
+  };
+  input.addEventListener("focus", () => {
+    loadPlaces().then(() => { if(document.activeElement === input) render(); }); render();
+    if(window.innerWidth < 760){
+      setTimeout(() => {
+        const top = input.getBoundingClientRect().top;
+        if(top > 120 || top < 0) window.scrollTo({ top: window.scrollY + top - 84, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      }, 60);
+    }
+  });
+  input.addEventListener("input", () => {
+    delete input.dataset.lat; delete input.dataset.lng; input.dataset.label = "";
+    clear.classList.toggle("hidden", !input.value); active = -1; render();
+    if(!input.value) onPick && onPick(null);
+  });
+  input.addEventListener("keydown", e => {
+    if(list.hidden && (e.key === "ArrowDown")) { render(); return; }
+    if(e.key === "ArrowDown"){ e.preventDefault(); active = Math.min(items.length-1, active+1); render(); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); active = Math.max(0, active-1); render(); }
+    else if(e.key === "Enter" && !list.hidden && items.length){ e.preventDefault(); pick(items[Math.max(0, active)]); }
+    else if(e.key === "Escape"){ close(); }
+  });
+  list.addEventListener("mousedown", e => e.preventDefault());
+  list.addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if(li) pick(items[+li.dataset.i]); });
+  input.addEventListener("blur", () => setTimeout(() => {
+    close();
+    if(input.value && !input.dataset.lat){
+      const p = findPlace(input.value) || searchPlaces(input.value, 1).find(x => x.n === norm(input.value));
+      if(p) pick(p);
+    }
+  }, 120));
+  clear.addEventListener("click", () => { input.value = ""; input.dataset.label = ""; delete input.dataset.lat; delete input.dataset.lng; clear.classList.add("hidden"); onPick && onPick(null); input.focus(); });
+}
+function readPlace(id){
+  const input = document.getElementById(id); if(!input || !input.value.trim()) return null;
+  if(input.dataset.lat) return { label: input.dataset.label || input.value, lat: +input.dataset.lat, lng: +input.dataset.lng };
+  const p = findPlace(input.value.trim());
+  return p ? { label: p.label, lat: p.lat, lng: p.lng } : { label: input.value.trim(), invalid: true };
+}
 
 /* ---------------- Utilidades ---------------- */
 const $ = (s, el=document) => el.querySelector(s);
@@ -669,26 +806,34 @@ const api = {
     } else {
       let q = sb.from("trips").select("*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)")
         .gte("departure_at", new Date(Date.now()-2*3600e3).toISOString())
-        .neq("status","cancelado").order("departure_at", { ascending:true }).limit(300);
-      if(f.origin) q = q.eq("origin_city", f.origin);
-      if(f.dest) q = q.eq("dest_city", f.dest);
+        .neq("status","cancelado").order("departure_at", { ascending:true }).limit(1000);
       const { data, error } = await q;
       if(error){ toast("No se pudieron cargar los viajes", "err"); return []; }
       rows = data;
     }
     const now = Date.now()-2*3600e3;
+    const R = f.near ? 35 : 3;
+    const match = (name, pt, qLabel, qPt) => {
+      if(!qLabel) return { ok:true, km:0 };
+      if(name === qLabel) return { ok:true, km:0 };
+      if(!pt || !qPt) return { ok:false };
+      const km = haversine(pt, qPt);
+      return { ok: km <= R, km };
+    };
     return rows.filter(t => {
       if(new Date(t.departure_at).getTime() < now) return false;
       if(t.status === "cancelado") return false;
-      if(f.origin && t.origin_city !== f.origin) return false;
-      if(f.dest && t.dest_city !== f.dest) return false;
+      const { a, b } = tripPoints(t);
+      const mo = match(t.origin_city, a, f.origin, f.originPt), md = match(t.dest_city, b, f.dest, f.destPt);
+      if(!mo.ok || !md.ok) return false;
+      t._near = { o: mo.km > 3 ? Math.round(mo.km) : 0, d: md.km > 3 ? Math.round(md.km) : 0, oq: f.origin, dq: f.dest };
       if(f.date){ const d = new Date(t.departure_at); const [y,m,dd] = f.date.split("-").map(Number); if(d.getFullYear()!==y||d.getMonth()+1!==m||d.getDate()!==dd) return false; }
       if(f.gratis && t.cost_mode !== "gratis") return false;
       const free = t.seats_total - t.seats_taken;
       if(f.full){ if(free > 0 && f.seats && free < f.seats) return false; }
       else if((f.seats||1) > free) return false;
       return true;
-    }).sort((a,b)=> f.sort === "plazas" ? ((b.seats_total-b.seats_taken)-(a.seats_total-a.seats_taken)) || (new Date(a.departure_at)-new Date(b.departure_at)) : new Date(a.departure_at)-new Date(b.departure_at));
+    }).sort((a,b)=> (f.origin || f.dest) && ((a._near.o + a._near.d) !== (b._near.o + b._near.d)) && Math.abs((a._near.o + a._near.d) - (b._near.o + b._near.d)) > 15 ? (a._near.o + a._near.d) - (b._near.o + b._near.d) : f.sort === "plazas" ? ((b.seats_total-b.seats_taken)-(a.seats_total-a.seats_taken)) || (new Date(a.departure_at)-new Date(b.departure_at)) : new Date(a.departure_at)-new Date(b.departure_at));
   },
   async destCounts(dests){
     const out = {};
@@ -875,7 +1020,7 @@ function renderAuth(){
 }
 function requireLogin(reason){
   modal(`<h3>Inicia sesión para continuar</h3>
-    <p class="muted">${esc(reason||"Necesitamos saber quién eres para que el resto de viajeros pueda confiar en ti.")} Solo usamos tu nombre e inicial del apellido; tu correo y tu teléfono nunca se muestran.</p>
+    <p class="muted">${esc(reason||"Necesitamos saber quién eres para que el resto de viajeros pueda confiar en ti.")} Mostramos tu nombre de pila, la inicial del apellido y tu foto de Google; tu correo y tu teléfono nunca se muestran.</p>
     <button class="btn block" id="mLogin">${ICON.google} Entrar con Google</button>
     <p class="small muted" style="margin:14px 0 0;text-align:center">Al entrar aceptas las <a href="#/legal/condiciones" onclick="document.getElementById('modalRoot').innerHTML=''">condiciones de uso</a> y la <a href="#/legal/privacidad" onclick="document.getElementById('modalRoot').innerHTML=''">política de privacidad</a>.</p>`);
   $("#mLogin").onclick = () => { closeModal(); api.signIn(); };
@@ -924,9 +1069,6 @@ async function route(){
 window.addEventListener("hashchange", route);
 
 /* ---------------- Vista: inicio ---------------- */
-function cityOptions(sel, anyLabel="Cualquiera"){
-  return `<option value="">${anyLabel}</option>` + CITY_GROUPS.map(g => `<optgroup label="${esc(g.label)}">${g.items.map(c => `<option ${c.name===sel?"selected":""}>${esc(c.name)}</option>`).join("")}</optgroup>`).join("");
-}
 function seatsViz(t){ let s=""; for(let i=0;i<t.seats_total;i++) s += `<i class="${i >= t.seats_taken ? "free":""}"></i>`; return `<span class="seats-viz" aria-hidden="true">${s}</span>`; }
 function statusPill(t){
   const free = t.seats_total - t.seats_taken;
@@ -946,6 +1088,7 @@ function tripCard(t, i=0){
       <span class="city">${esc(t.dest_city)}</span>
       ${t.dest_detail?`<span class="detail">${esc(t.dest_detail)}</span>`:""}
     </div>
+    ${t._near && (t._near.o || t._near.d) ? `<div class="near">${[t._near.o ? `Sale a ${t._near.o} km de ${esc(t._near.oq)}` : "", t._near.d ? `Llega a ${t._near.d} km de ${esc(t._near.dq)}` : ""].filter(Boolean).join(" · ")}</div>` : ""}
     <div class="meta">
       <span><b>${fmtDate(t.departure_at)}</b></span>
       <span><b>${fmtTime(t.departure_at)}</b></span>
@@ -988,9 +1131,9 @@ function viewHome(p){
   <section class="search-band" id="buscar" aria-label="Buscar viaje">
     <div id="dueBanner" style="margin-bottom:16px"></div>
     <form class="search" id="searchForm">
-      <div class="field origin"><label for="fo">Salgo de</label><select id="fo">${cityOptions(p.o)}</select></div>
+      <div class="origin">${placeField("fo", "Salgo de", p.o, { any:true })}</div>
       <button type="button" class="swap" id="swap" aria-label="Intercambiar origen y destino"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3"/></svg></button>
-      <div class="field dest"><label for="fd">Voy a</label><select id="fd">${cityOptions(p.d)}</select></div>
+      <div class="dest">${placeField("fd", "Voy a", p.d, { any:true })}</div>
       <div class="field date"><label for="ff">Fecha</label><input type="date" id="ff" min="${today}" value="${esc(p.f||"")}"></div>
       <div class="field seats"><label for="fs">Plazas</label><select id="fs">${[1,2,3,4].map(n=>`<option value="${n}" ${String(n)===(p.s||"1")?"selected":""}>${n}</option>`).join("")}</select></div>
       <button class="btn" type="submit">Buscar</button>
@@ -1003,6 +1146,7 @@ function viewHome(p){
         <button type="button" class="chip" data-date="finde">Este fin de semana</button>
       </div>
       <div class="chips">
+        <button type="button" class="chip toggle" id="chipNear" aria-pressed="${p.n!=="0"}">Incluir a 35 km</button>
         <button type="button" class="chip toggle" id="chipGratis" aria-pressed="${p.g==="1"}">Solo gratis</button>
         <button type="button" class="chip toggle" id="chipFull" aria-pressed="${p.c==="1"}">Incluir completos</button>
         <label class="chip select"><span>Ordenar</span><select id="fsort"><option value="salida" ${p.sort!=="plazas"?"selected":""}>Salida más próxima</option><option value="plazas" ${p.sort==="plazas"?"selected":""}>Más plazas libres</option></select></label>
@@ -1091,10 +1235,12 @@ function viewHome(p){
   if($("#heroLogout")) $("#heroLogout").onclick = e => { e.preventDefault(); api.signOut(); };
   const gratis = () => $("#chipGratis").getAttribute("aria-pressed")==="true";
   const full = () => $("#chipFull").getAttribute("aria-pressed")==="true";
+  const near = () => $("#chipNear").getAttribute("aria-pressed")==="true";
+  const placeVal = id => { const p = readPlace(id); return p && !p.invalid ? p.label : ""; };
   const isoLocal = d => { const x = new Date(d.getTime()-d.getTimezoneOffset()*60e3); return x.toISOString().slice(0,10); };
   function syncUrl(){
     const q = new URLSearchParams();
-    if($("#fo").value) q.set("o",$("#fo").value); if($("#fd").value) q.set("d",$("#fd").value); if($("#ff").value) q.set("f",$("#ff").value);
+    if(placeVal("fo")) q.set("o",placeVal("fo")); if(placeVal("fd")) q.set("d",placeVal("fd")); if($("#ff").value) q.set("f",$("#ff").value); if(!near()) q.set("n","0");
     if($("#fs").value!=="1") q.set("s",$("#fs").value); if(gratis()) q.set("g","1"); if(full()) q.set("c","1"); if($("#fsort").value!=="salida") q.set("sort",$("#fsort").value);
     const str = q.toString(); history.replaceState(null,"","#/"+(str?"?"+str:""));
     $("#chipClear").classList.toggle("hidden", !str);
@@ -1106,8 +1252,15 @@ function viewHome(p){
   }
   let debounce = null;
   const apply = (scroll=false) => { syncUrl(); markDateChip(); clearTimeout(debounce); debounce = setTimeout(() => { loadResults(); if(scroll) $("#resTitle").scrollIntoView({behavior:"smooth", block:"start"}); }, 120); };
-  $("#swap").onclick = () => { const a=$("#fo"), b=$("#fd"); [a.value,b.value]=[b.value,a.value]; apply(); };
-  ["fo","fd","ff","fs","fsort"].forEach(id => $("#"+id).addEventListener("change", () => apply()));
+  $("#swap").onclick = () => {
+    const a=$("#fo"), b=$("#fd"), keys=["label","lat","lng"];
+    const sa = { v:a.value, d:Object.fromEntries(keys.map(k=>[k,a.dataset[k]])) }, sbb = { v:b.value, d:Object.fromEntries(keys.map(k=>[k,b.dataset[k]])) };
+    const put = (el, st) => { el.value = st.v; keys.forEach(k => { if(st.d[k] != null) el.dataset[k] = st.d[k]; else delete el.dataset[k]; }); el.closest(".combo").querySelector(".combo-clear").classList.toggle("hidden", !st.v); };
+    put(a, sbb); put(b, sa); apply();
+  };
+  bindPlace("fo", () => apply()); bindPlace("fd", () => apply());
+  ["ff","fs","fsort"].forEach(id => $("#"+id).addEventListener("change", () => apply()));
+  $("#chipNear").onclick = () => { $("#chipNear").setAttribute("aria-pressed", String(!near())); apply(); };
   $("#searchForm").onsubmit = e => { e.preventDefault(); apply(true); };
   document.querySelectorAll("#dateChips .chip").forEach(c => c.onclick = () => {
     const k = c.dataset.date; const now = new Date();
@@ -1122,7 +1275,7 @@ function viewHome(p){
   let weekend = false;
   $("#chipGratis").onclick = () => { $("#chipGratis").setAttribute("aria-pressed", String(!gratis())); apply(); };
   $("#chipFull").onclick = () => { $("#chipFull").setAttribute("aria-pressed", String(!full())); apply(); };
-  $("#chipClear").onclick = () => { $("#fo").value=""; $("#fd").value=""; $("#ff").value=""; $("#fs").value="1"; $("#fsort").value="salida"; $("#chipGratis").setAttribute("aria-pressed","false"); $("#chipFull").setAttribute("aria-pressed","false"); weekend=false; apply(); };
+  $("#chipClear").onclick = () => { ["fo","fd"].forEach(id => { const el=$("#"+id); el.value=""; el.dataset.label=""; delete el.dataset.lat; delete el.dataset.lng; el.closest(".combo").querySelector(".combo-clear").classList.add("hidden"); }); $("#chipNear").setAttribute("aria-pressed","true"); $("#ff").value=""; $("#fs").value="1"; $("#fsort").value="salida"; $("#chipGratis").setAttribute("aria-pressed","false"); $("#chipFull").setAttribute("aria-pressed","false"); weekend=false; apply(); };
   markDateChip(); $("#chipClear").classList.toggle("hidden", !location.hash.includes("?"));
   let mode = "list";
   document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
@@ -1132,7 +1285,9 @@ function viewHome(p){
   });
   let lastResults = [];
   async function loadResults(){
-    const f = { origin:$("#fo").value, dest:$("#fd").value, date:$("#ff").value, seats:Number($("#fs").value)||1, gratis:gratis(), full:full(), sort:$("#fsort").value };
+    await loadPlaces();
+    const po = readPlace("fo"), pd = readPlace("fd");
+    const f = { origin: po && !po.invalid ? po.label : "", originPt: po && !po.invalid ? po : null, dest: pd && !pd.invalid ? pd.label : "", destPt: pd && !pd.invalid ? pd : null, near: near(), date:$("#ff").value, seats:Number($("#fs").value)||1, gratis:gratis(), full:full(), sort:$("#fsort").value };
     if(weekend && f.date){ const sat = new Date(f.date+"T12:00"); const sun = new Date(sat.getTime()+864e5); f.date = ""; f.dates = [isoLocal(sat), isoLocal(sun)]; }
     $("#results").style.opacity = ".4";
     let rows = await api.listTrips(f);
@@ -1159,7 +1314,7 @@ function viewHome(p){
     setTimeout(() => mapInst.invalidateSize(), 50);
     const bounds = [];
     rows.forEach(t => {
-      const a = cityByName(t.origin_city), b = cityByName(t.dest_city); if(!a||!b) return;
+      const { a, b } = tripPoints(t); if(!a||!b) return;
       const full = t.seats_total - t.seats_taken <= 0;
       const col = full ? "#8a8078" : "#2f4a58";
       L.polyline([[a.lat,a.lng],[b.lat,b.lng]], { color:col, weight:full?2:3, opacity:.8, dashArray: full?"4 6":null }).addTo(mapInst);
@@ -1203,7 +1358,7 @@ async function viewPublish(editId){
   if(!me){
     app.innerHTML = `<section class="page narrow"><div class="wrap">
       <h1>${editing ? "Editar viaje" : "Publica tus plazas libres"}</h1>
-      <p class="lead muted">Para ${editing ? "editar" : "publicar"} un viaje necesitas identificarte. Es rápido y solo mostraremos tu nombre de pila e inicial del apellido.</p>
+      <p class="lead muted">Para ${editing ? "editar" : "publicar"} un viaje necesitas identificarte. Es rápido: mostraremos tu nombre de pila, la inicial del apellido y tu foto de Google, nunca tu correo.</p>
       <div class="panel box" style="text-align:center;padding:40px 24px">
         ${ICON.lock.replace('<svg','<svg width="36" height="36" style="color:var(--surface-2)"')}
         <h3 style="margin-top:10px">Identifícate para continuar</h3>
@@ -1238,8 +1393,8 @@ async function viewPublish(editId){
       <fieldset>
         <legend>Trayecto</legend>
         <div class="form-grid">
-          <div class="field"><label for="po">Salgo de</label><select id="po" required>${cityOptions(v.origin_city || "Madrid", "Elige localidad")}</select></div>
-          <div class="field"><label for="pd">Voy a</label><select id="pd" required>${cityOptions(v.dest_city || "", "Elige localidad")}</select></div>
+          ${placeField("po", "Salgo de", v.origin_city || "Madrid", { required:true, placeholder:"Ej.: Madrid" })}
+          ${placeField("pd", "Voy a", v.dest_city || "", { required:true, placeholder:"Ej.: Martos, Andújar, Sevilla…" })}
           <div class="field"><label for="pod">Zona o referencia de salida</label><input id="pod" maxlength="80" value="${esc(v.origin_detail||"")}" placeholder="Ej.: Atocha, Moncloa, Getafe centro"><span class="hint">Sin direcciones exactas; eso se concreta en el grupo.</span></div>
           <div class="field"><label for="pdd">Zona o referencia de llegada</label><input id="pdd" maxlength="80" value="${esc(v.dest_detail||"")}" placeholder="Ej.: Santa Justa, centro, barrio de Triana"></div>
           <div class="field full"><label for="pstops">Paradas posibles por el camino</label><input id="pstops" maxlength="140" value="${esc(v.stops||"")}" placeholder="Ej.: Puedo parar en Córdoba o en cualquier salida de la A-4"></div>
@@ -1279,6 +1434,9 @@ async function viewPublish(editId){
     </form></div></section>`;
 
   const f = id => $("#"+id);
+  bindPlace("po"); bindPlace("pd");
+  if(v.origin_lat != null){ f("po").dataset.lat = v.origin_lat; f("po").dataset.lng = v.origin_lng; f("po").dataset.label = v.origin_city; }
+  if(v.dest_lat != null){ f("pd").dataset.lat = v.dest_lat; f("pd").dataset.lng = v.dest_lng; f("pd").dataset.label = v.dest_city; }
   document.querySelectorAll("#costModes input").forEach(r => r.addEventListener("change", () => {
     document.querySelectorAll("#costModes .radio-card").forEach(l => l.classList.toggle("checked", l.querySelector("input").checked));
   }));
@@ -1288,20 +1446,24 @@ async function viewPublish(editId){
     e.preventDefault();
     const errBox = f("formErr"); errBox.classList.add("hidden");
     const errs = [];
-    if(!f("po").value) errs.push("Indica desde dónde sales.");
-    if(!f("pd").value) errs.push("Indica el destino.");
-    if(f("po").value && f("po").value === f("pd").value) errs.push("Origen y destino no pueden ser la misma localidad.");
+    await loadPlaces();
+    const po = readPlace("po"), pd = readPlace("pd");
+    if(!po) errs.push("Indica desde dónde sales.");
+    else if(po.invalid) errs.push(`No encontramos "${po.label}". Elige la localidad de salida de la lista.`);
+    if(!pd) errs.push("Indica el destino.");
+    else if(pd.invalid) errs.push(`No encontramos "${pd.label}". Elige el destino de la lista.`);
+    if(po && pd && !po.invalid && !pd.invalid && po.label === pd.label) errs.push("Origen y destino no pueden ser la misma localidad.");
     const when = new Date(f("pdt").value); if(isNaN(when) || when.getTime() < Date.now()+15*60e3) errs.push("La salida debe ser al menos dentro de 15 minutos.");
     if(f("pdesc").value.trim().length < 20) errs.push("Escribe una descripción de al menos 20 caracteres.");
     if(!editing && !(f("c1").checked && f("c2").checked && f("c3").checked)) errs.push("Debes aceptar los tres compromisos.");
     if(errs.length){ errBox.innerHTML = errs.map(esc).join("<br>"); errBox.classList.remove("hidden"); errBox.scrollIntoView({behavior:"smooth", block:"center"}); return; }
     const data = {
-      origin_city: f("po").value, origin_detail: f("pod").value.trim() || null,
-      dest_city: f("pd").value, dest_detail: f("pdd").value.trim() || null,
+      origin_city: po.label, origin_lat: po.lat, origin_lng: po.lng, origin_detail: f("pod").value.trim() || null,
+      dest_city: pd.label, dest_lat: pd.lat, dest_lng: pd.lng, dest_detail: f("pdd").value.trim() || null,
       stops: f("pstops").value.trim() || null, departure_at: when.toISOString(), flexibility: f("pflex").value,
       seats_total: Number(f("pseats").value), vehicle: f("pveh").value.trim() || null,
       cost_mode: document.querySelector("#costModes input:checked").value,
-      distance_km: roadKm(f("po").value, f("pd").value), description: f("pdesc").value.trim()
+      distance_km: roadKmPts(po, pd), description: f("pdesc").value.trim()
     };
     f("pubSubmit").disabled = true;
     try{
@@ -1613,8 +1775,8 @@ async function viewTransport(p){
         <form class="panel box sign-form" id="signForm">
           <h3>Firma tu trayecto</h3>
           <div class="form-grid">
-            <div class="field"><label for="so">Desde</label><select id="so" required>${cityOptions(p.o||"Madrid","Elige localidad")}</select></div>
-            <div class="field"><label for="sd">Hasta</label><select id="sd" required>${cityOptions(p.d||"","Elige localidad")}</select></div>
+            ${placeField("so", "Desde", p.o || "Madrid", { required:true })}
+            ${placeField("sd", "Hasta", p.d || "", { required:true, placeholder:"Ej.: Martos" })}
           </div>
           <fieldset style="margin:18px 0 18px">
             <legend class="small" style="font-size:var(--step-small);font-weight:500;color:var(--muted);margin-bottom:8px">¿Con qué frecuencia lo necesitas?</legend>
@@ -1630,15 +1792,19 @@ async function viewTransport(p){
   let need = "semanal";
   document.querySelectorAll("#needChips .chip").forEach(c => c.onclick = () => { need = c.dataset.need; document.querySelectorAll("#needChips .chip").forEach(x => x.classList.toggle("on", x === c)); });
   const syncBtn = () => {
-    const k = $("#so").value+"|"+$("#sd").value; const ex = sigs.find(x => x.origin_city+"|"+x.dest_city === k);
+    const so = readPlace("so"), sd = readPlace("sd");
+    const k = (so?.label||"")+"|"+(sd?.label||""); const ex = sigs.find(x => x.origin_city+"|"+x.dest_city === k);
     if(ex){ need = ex.need; document.querySelectorAll("#needChips .chip").forEach(x => x.classList.toggle("on", x.dataset.need === need)); }
     if(me) $("#signBtn").textContent = ex ? "Actualizar mi firma" : "Firmar este trayecto";
   };
-  ["so","sd"].forEach(i => $("#"+i).addEventListener("change", syncBtn)); syncBtn();
+  bindPlace("so", syncBtn); bindPlace("sd", syncBtn); syncBtn();
   $("#signForm").onsubmit = async e => {
     e.preventDefault();
-    const o = $("#so").value, d = $("#sd").value;
-    if(!o || !d){ toast("Elige origen y destino", "err"); return; }
+    await loadPlaces();
+    const so = readPlace("so"), sd = readPlace("sd");
+    if(!so || !sd){ toast("Elige origen y destino", "err"); return; }
+    if(so.invalid || sd.invalid){ toast("Elige las localidades de la lista", "err"); return; }
+    const o = so.label, d = sd.label;
     if(o === d){ toast("Origen y destino no pueden ser la misma localidad", "err"); return; }
     if(!me){ try{ sessionStorage.setItem("bbh_pending_sign", JSON.stringify({ o, d, need })); }catch(_){} return api.signIn(); }
     $("#signBtn").disabled = true;
@@ -1675,7 +1841,7 @@ function viewHow(){
     <h2>Si necesitas plaza</h2>
     <ul>
       <li>Busca por origen, destino, fecha y número de plazas, en lista o en mapa. No hace falta cuenta para buscar.</li>
-      <li>Para apuntarte sí necesitas identificarte con Google. Mostramos tu nombre de pila y la inicial de tu apellido, nada más.</li>
+      <li>Para apuntarte sí necesitas identificarte con Google. Mostramos tu nombre de pila, la inicial de tu apellido y la foto de tu cuenta de Google; nunca tu correo.</li>
       <li>Al apuntarte ocupas una plaza y entras en el grupo del viaje. Si cambias de planes, pulsa "Ya no viajo" para que otra persona pueda usarla.</li>
       <li>48 horas antes de la salida tendrás que confirmar que viajas. Si a 12 horas de salir no has confirmado, la plaza se libera automáticamente.</li>
     </ul>
@@ -1726,7 +1892,7 @@ function viewLegal(which){
       </ul>
       <p><strong>No solicitamos ni almacenamos números de teléfono.</strong> Si decides compartir tu teléfono u otros datos dentro del grupo privado de un viaje, lo haces voluntariamente y bajo tu responsabilidad.</p>
       <h2>Qué mostramos a otros usuarios</h2>
-      <p>Públicamente (sin iniciar sesión) solo se ven los datos del viaje y el nombre de pila con la inicial del apellido del conductor. Dentro de un grupo de viaje, el conductor y los pasajeros apuntados ven los nombres abreviados de los demás miembros y los mensajes del grupo. Tu correo electrónico no se muestra nunca a otros usuarios.</p>
+      <p>Públicamente (sin iniciar sesión) se ven los datos de cada viaje y, del conductor, el nombre de pila con la inicial del apellido y la foto de perfil de su cuenta de Google, si la tiene. Dentro de un grupo de viaje, el conductor y los pasajeros apuntados ven el nombre abreviado y la foto de los demás miembros, si han confirmado su plaza, y los mensajes del grupo. Tu correo electrónico no se muestra nunca a otros usuarios. Si no quieres que se vea tu foto, puedes quitarla de tu cuenta de Google o pedirnos que la eliminemos.</p>
       <h2>Finalidad y base jurídica</h2>
       <ul>
         <li>Crear y gestionar tu cuenta, publicar viajes, apuntarte a ellos y comunicarte en el grupo: <strong>ejecución del servicio que solicitas</strong> (art. 6.1.b RGPD).</li>
@@ -1735,7 +1901,13 @@ function viewLegal(which){
       </ul>
       <p>No utilizamos tus datos con fines publicitarios, no elaboramos perfiles y no los cedemos a terceros con fines comerciales.</p>
       <h2>Encargados y transferencias</h2>
-      <p>La infraestructura (base de datos, autenticación y mensajería) la presta <strong>Supabase</strong>, con servidores alojados en la Unión Europea, en calidad de encargado del tratamiento. El inicio de sesión lo presta <strong>Google</strong> conforme a su propia política de privacidad. Los mapas los sirve CARTO sobre datos de OpenStreetMap; al cargarlos, tu navegador envía su dirección IP a dichos servidores.</p>
+      <p>Estos proveedores intervienen en el servicio:</p>
+      <ul>
+        <li><strong>Supabase</strong> (base de datos, autenticación y mensajería), con servidores en la Unión Europea (Irlanda), como encargado del tratamiento.</li>
+        <li><strong>Vercel</strong> (alojamiento de la web), que registra datos técnicos de acceso como la dirección IP. Vercel es una empresa de Estados Unidos; las transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU. y en cláusulas contractuales tipo.</li>
+        <li><strong>Google</strong>, para el inicio de sesión, conforme a su propia política de privacidad.</li>
+        <li>Para mostrar la web, tu navegador descarga recursos de terceros, que reciben tu dirección IP: la tipografía, de <strong>Fontshare</strong> (Indian Type Foundry); las librerías de mapa y conexión, de <strong>unpkg</strong> y <strong>jsDelivr</strong>; y los mapas, de <strong>CARTO</strong> con datos de <strong>OpenStreetMap</strong>.</li>
+      </ul>
       <h2>Conservación</h2>
       <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
       <h2>Tus derechos</h2>
@@ -1768,7 +1940,7 @@ function viewLegal(which){
       <p>${site} nace para una situación temporal. El titular puede modificar estas condiciones o cesar el servicio en cualquier momento, eliminando los datos conforme a la política de privacidad.</p>
       <h2>9. Legislación</h2>
       <p>Estas condiciones se rigen por la legislación española.</p>
-      <p class="small muted">Última actualización: 29 de octubre de 2026.</p>`
+      <p class="small muted">Última actualización: 30 de octubre de 2026.</p>`
   };
   app.innerHTML = `<section class="page narrow"><div class="wrap legal">${T[which]}</div></section>`;
 }
@@ -1779,6 +1951,7 @@ document.addEventListener("click", e => { if(e.target.closest("nav.main a")) $("
 if(DEMO){
   const b = document.createElement("div"); b.className = "demo-badge"; b.textContent = "Modo demostración · datos de ejemplo"; document.body.appendChild(b);
 }
+(window.requestIdleCallback || (cb => setTimeout(cb, 1200)))(() => loadPlaces());
 (async () => {
   try{ await api.init(); }catch(e){ console.error(e); toast("No se pudo conectar con el servidor", "err"); }
   renderAuth();
