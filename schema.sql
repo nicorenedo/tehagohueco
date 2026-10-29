@@ -337,3 +337,8 @@ create trigger trips_after_update_notify after update on public.trips
 revoke execute on function public.trips_before_update() from public, anon, authenticated;
 revoke execute on function public.trips_after_update_notify() from public, anon, authenticated;
 alter table public.trips replica identity full;
+
+-- ------------------------------------------------------------
+-- 10. CONFIRMACIONES, QUITAR PASAJEROS, GRUPO EXTERNO Y FIRMAS
+--     Ver supabase/migrations/20261029_confirmaciones_firmas.sql
+-- ------------------------------------------------------------

@@ -319,8 +319,9 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .owner-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .owner-actions .btn{flex:1 1 auto}
 /* Detalle de viaje */
-.detail{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(16px,2vw,28px);align-items:start}
-@media (max-width:900px){.detail{grid-template-columns:1fr}}
+.detail{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(16px,2vw,28px);align-items:start}
+.detail > div{min-width:0}
+@media (max-width:900px){.detail{grid-template-columns:minmax(0,1fr)}}
 .route-big{margin:18px 0 26px}
 .route-big .city{font-size:clamp(2.4rem,1.6rem + 3vw,4.2rem);font-weight:700;letter-spacing:-.04em;line-height:.95}
 .route-big .to{color:var(--muted);font-size:var(--step-small);margin:10px 0 4px}
@@ -339,7 +340,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .msg .when{display:block;font-size:.72rem;opacity:.6;margin-top:3px;text-align:right}
 .msg.sys{align-self:center;background:transparent;color:var(--muted);font-size:var(--step-small);text-align:center;max-width:100%}
 .chat form{display:flex;gap:8px;margin-top:12px}
-.chat form input{flex:1;height:48px;border:0;background:var(--paper);border-radius:999px;padding:0 18px;outline:none}
+.chat form input{flex:1;min-width:0;height:48px;border:0;background:var(--paper);border-radius:999px;padding:0 18px;outline:none}
 .chat form input:focus{outline:2px solid var(--ink);outline-offset:-2px}
 .locked{display:grid;place-items:center;text-align:center;padding:40px 20px;color:var(--muted);min-height:220px}
 .locked svg{width:36px;height:36px;margin-bottom:10px;color:var(--surface-2)}
@@ -350,6 +351,74 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .legal ul{padding-left:20px;max-width:62ch}
 .legal li{margin-bottom:.4em}
 .legal a{text-underline-offset:3px}
+
+/* ---------- Pasajeros, confirmación y grupo ---------- */
+.member-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.member-row{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 8px;background:var(--bg);border-radius:999px}
+.member-row .avatar{width:32px;height:32px;font-size:.75rem;background:var(--surface-2)}
+.member-row .mname{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-row.self{background:var(--paper)}
+.mstate{display:inline-flex;align-items:center;gap:5px;font-size:var(--step-small);font-weight:500;color:var(--muted);white-space:nowrap}
+.mstate.ok{color:var(--ok)}
+.mstate.danger{color:var(--danger)}
+.mx{width:32px;height:32px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none;transition:background 160ms var(--ease),color 160ms var(--ease),transform 160ms var(--ease-out)}
+.mx:active{transform:scale(.9)}
+@media (hover:hover) and (pointer:fine){.mx:hover{background:var(--danger-soft);color:var(--danger)}}
+.confirm{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 18px;background:var(--bg)}
+.confirm.due{background:var(--warn-soft)}
+.confirm.ok{justify-content:flex-start;background:var(--ok-soft);color:#1f4a36}
+.confirm .dot{width:30px;height:30px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;flex:none}
+.confirm > div{flex:1 1 240px}
+.seat-ctl{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:var(--bg)}
+.stepper{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border-radius:999px;padding:4px}
+.stepper .step{width:40px;height:40px;border-radius:50%;border:0;background:var(--paper);font-size:1.3rem;font-weight:600;cursor:pointer;color:var(--ink);transition:transform 160ms var(--ease-out),background 160ms var(--ease)}
+.stepper .step:active{transform:scale(.9)}
+.stepper .step:disabled{opacity:.35;cursor:not-allowed}
+.stepper .val{min-width:2.2ch;text-align:center;font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums}
+.glink{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--bg);margin-bottom:14px}
+.glink > div{flex:1 1 160px}
+.glink-form{display:grid;gap:8px;margin-bottom:14px}
+.glink-form .row{display:flex;gap:8px;flex-wrap:wrap}
+.glink-form input{flex:1 1 200px;height:44px;border:0;background:var(--paper);border-radius:999px;padding:0 16px;outline:none}
+.glink-form input:focus{outline:2px solid var(--ink);outline-offset:-2px}
+.glink-none{margin:0 0 14px}
+.tips ul{margin:0 0 14px;padding-left:20px;display:grid;gap:6px}
+.tips li{max-width:60ch}
+.trip-wrap{display:flex;flex-direction:column;background:var(--surface)}
+.trip-wrap .trip{flex:1}
+.trip-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:0 clamp(18px,2vw,26px) clamp(16px,1.8vw,22px)}
+.sig-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.sig-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--surface)}
+.panel .sig-list li{background:var(--bg)}
+/* ---------- Demanda de transporte ---------- */
+.demand{background:var(--field);color:var(--field-ink);padding:clamp(72px,9vw,128px) var(--m)}
+.demand h2{font-size:var(--step-head);letter-spacing:-.035em;line-height:1;margin-bottom:.4em}
+.demand p{color:var(--field-ink)}
+.demand .dm-text{grid-column:1/6}
+.demand .dm-list{grid-column:7/13;display:grid;gap:16px;align-content:start}
+.dm-count,.th-count{display:grid;gap:4px;margin:28px 0}
+.dm-count .big,.th-count .big{font-size:clamp(64px,9vw,132px);font-weight:700;letter-spacing:-.05em;line-height:.9;color:var(--accent);font-variant-numeric:tabular-nums}
+.dm-count span:last-child{color:var(--field-soft)}
+.dlist{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.drow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;align-items:center;gap:14px}
+.dname{display:grid;gap:2px;min-width:0}
+.dname b{font-size:var(--step-body);font-weight:600}
+.dbar{height:10px;background:var(--surface);border-radius:999px;overflow:hidden}
+.dbar i{display:block;height:100%;background:var(--field);border-radius:999px;transform-origin:left;animation:grow 900ms var(--ease-out) both}
+.dnum{font-weight:700;font-variant-numeric:tabular-nums;min-width:3ch;text-align:right}
+.on-dark .dbar{background:var(--field-deep)}
+.on-dark .dbar i{background:var(--accent)}
+.on-dark .dname .muted{color:var(--field-soft)}
+@keyframes grow{from{transform:scaleX(0)}to{transform:none}}
+.transport-head{align-items:end;margin-bottom:clamp(28px,4vw,56px)}
+.transport-head .th-text{grid-column:1/8}
+.transport-head .th-count{grid-column:9/13;margin:0}
+.transport-head .th-count .big{color:var(--field)}
+.transport-head .th-count span:last-child{color:var(--muted)}
+.h-q{font-size:var(--step-q);letter-spacing:-.025em}
+@media (max-width:900px){.demand .dm-text,.demand .dm-list,.transport-head .th-text,.transport-head .th-count{grid-column:1/-1}.demand .dm-list{margin-top:24px}.transport-head .th-count{margin-top:24px}}
+@media (max-width:520px){.drow{grid-template-columns:1fr auto}.dbar{grid-column:1/-1;order:3}}
+@media (prefers-reduced-motion:reduce){.dbar i{animation:none}}
 
 /* ---------- Entradas al hacer scroll ---------- */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
@@ -388,6 +457,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
       <a href="#/" data-nav="home">Buscar viaje</a>
       <a href="#/publicar" data-nav="publicar">Publicar plazas</a>
       <a href="#/mis-viajes" data-nav="mis-viajes">Mis viajes</a>
+      <a href="#/transporte" data-nav="transporte">Pide transporte</a>
       <a href="#/como-funciona" data-nav="como-funciona">Cómo funciona</a>
     </nav>
     <div class="auth-area" id="authArea"></div>
@@ -409,6 +479,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
       <li><a href="#/">Buscar viaje</a></li>
       <li><a href="#/publicar">Publicar plazas</a></li>
       <li><a href="#/mis-viajes">Mis viajes</a></li>
+      <li><a href="#/transporte">Pide más transporte</a></li>
       <li><a href="#/como-funciona">Cómo funciona</a></li>
     </ul>
     <ul>
@@ -530,7 +601,35 @@ const DEMO_TRIPS = (() => {
   ];
 })();
 
-const demoState = { trips: DEMO_TRIPS, members: {}, messages: {} };
+const demoState = { trips: DEMO_TRIPS, members: {}, messages: {}, removed: {}, private: {}, signatures: [], demand: [
+  ["Madrid","Sevilla","diario",41],["Madrid","Sevilla","semanal",63],["Madrid","Sevilla","puntual",88],["Madrid","Córdoba","semanal",37],["Madrid","Córdoba","puntual",52],
+  ["Madrid","Málaga","puntual",71],["Madrid","Málaga","semanal",29],["Sevilla","Madrid","semanal",44],["Madrid","Ciudad Real","diario",58],["Ciudad Real","Madrid","diario",49],
+  ["Madrid","Puertollano","diario",23],["Madrid","Cádiz","puntual",31],["Madrid","Granada","puntual",26],["Córdoba","Madrid","semanal",22],["Málaga","Madrid","puntual",19]
+] };
+let demoSeeded = false;
+function seedDemoUser(){
+  if(demoSeeded) return; demoSeeded = true;
+  const at = h => new Date(Date.now()+h*3600e3).toISOString();
+  const mine = { id: crypto.randomUUID(), status:"abierto", created_at:new Date().toISOString(), driver_id:"demo-user", driver:{ id:"demo-user", display_name:"Nico R." },
+    origin_city:"Madrid", origin_detail:"Méndez Álvaro", dest_city:"Córdoba", dest_detail:"Estación", departure_at:at(30), seats_total:4, seats_taken:2,
+    cost_mode:"compartir", distance_km:roadKm("Madrid","Córdoba"), flexibility:"Hora flexible ±30 min", stops:"Puertollano si hace falta", description:"Bajo el sábado a casa de mis padres. Sitio para maletas." };
+  demoState.trips.push(mine);
+  demoState.members[mine.id] = [
+    { user_id:"p1", display_name:"Laura M.", confirmed_at: new Date().toISOString() },
+    { user_id:"p2", display_name:"Óscar T.", confirmed_at: null }
+  ];
+  demoState.messages[mine.id] = [
+    { id:crypto.randomUUID(), user_id:null, system:true, body:"Laura M. se ha unido al viaje", created_at:at(-20) },
+    { id:crypto.randomUUID(), user_id:"p1", display_name:"Laura M.", body:"¡Hola! Llevo una maleta mediana, ¿cabe?", created_at:at(-19) },
+    { id:crypto.randomUUID(), user_id:null, system:true, body:"Óscar T. se ha unido al viaje", created_at:at(-6) }
+  ];
+  const ride = demoState.trips.find(t => t.origin_city==="Madrid" && t.dest_city==="Sevilla");
+  if(ride){ ride.departure_at = at(26); ride.seats_taken += 1; demoState.members[ride.id] = [{ user_id:"demo-user", display_name:"Nico R.", confirmed_at:null }]; demoState.private[ride.id] = "https://chat.whatsapp.com/EjemploDeGrupo"; }
+}
+const CONFIRM_OPEN_H = 48, CONFIRM_DEADLINE_H = 12;
+const inConfirmWindow = t => { const dep = new Date(t.departure_at).getTime(); return Date.now() >= dep - CONFIRM_OPEN_H*3600e3 && Date.now() < dep; };
+const confirmOpensAt = t => new Date(new Date(t.departure_at).getTime() - CONFIRM_OPEN_H*3600e3);
+const confirmDeadline = t => new Date(new Date(t.departure_at).getTime() - CONFIRM_DEADLINE_H*3600e3);
 
 const api = {
   async init(){
@@ -553,6 +652,7 @@ const api = {
     if(DEMO){
       me = { id:"demo-user", email:"demo@ejemplo.es" };
       myProfile = { id:"demo-user", display_name:"Nico R.", full_name:"Nico Renedo" };
+      seedDemoUser();
       renderAuth(); route(); toast("Sesión de demostración iniciada", "ok"); return;
     }
     const { error } = await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo: location.origin + location.pathname } });
@@ -635,8 +735,8 @@ const api = {
   },
   async members(tripId){
     if(DEMO){ return (demoState.members[tripId]||[]); }
-    const { data } = await sb.from("trip_members").select("user_id, created_at, profile:profiles(id, display_name, avatar_url)").eq("trip_id", tripId).order("created_at");
-    return (data||[]).map(m => ({ user_id:m.user_id, display_name:m.profile?.display_name, avatar_url:m.profile?.avatar_url }));
+    const { data } = await sb.from("trip_members").select("user_id, created_at, confirmed_at, profile:profiles(id, display_name, avatar_url)").eq("trip_id", tripId).order("created_at");
+    return (data||[]).map(m => ({ user_id:m.user_id, display_name:m.profile?.display_name, avatar_url:m.profile?.avatar_url, confirmed_at:m.confirmed_at, created_at:m.created_at }));
   },
   async join(tripId){
     if(DEMO){
@@ -644,7 +744,8 @@ const api = {
       if(t.seats_taken >= t.seats_total) throw new Error("No quedan plazas");
       demoState.members[tripId] = demoState.members[tripId] || [];
       if(demoState.members[tripId].some(m=>m.user_id===me.id)) throw new Error("Ya estás apuntado");
-      demoState.members[tripId].push({ user_id:me.id, display_name:myProfile.display_name });
+      if((demoState.removed[tripId]||[]).includes(me.id)) throw new Error("El conductor te ha quitado de este viaje; busca otro");
+      demoState.members[tripId].push({ user_id:me.id, display_name:myProfile.display_name, confirmed_at: inConfirmWindow(t) ? new Date().toISOString() : null });
       t.seats_taken++; if(t.seats_taken >= t.seats_total) t.status="completo";
       api._sysMsg(tripId, `${myProfile.display_name} se ha unido al viaje`); return;
     }
@@ -678,21 +779,77 @@ const api = {
     const ch = sb.channel("trip-"+tripId)
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"messages", filter:`trip_id=eq.${tripId}` }, onChange)
       .on("postgres_changes", { event:"*", schema:"public", table:"trip_members", filter:`trip_id=eq.${tripId}` }, onChange)
-      .on("postgres_changes", { event:"UPDATE", schema:"public", table:"trips", filter:`id=eq.${tripId}` }, onChange)
+      .on("postgres_changes", { event:"*", schema:"public", table:"trips", filter:`id=eq.${tripId}` }, onChange)
+      .on("postgres_changes", { event:"*", schema:"public", table:"trip_private", filter:`trip_id=eq.${tripId}` }, onChange)
       .subscribe();
     return () => sb.removeChannel(ch);
+  },
+  async confirm(tripId){
+    if(DEMO){ const m = (demoState.members[tripId]||[]).find(x=>x.user_id===me.id); if(m && !m.confirmed_at){ m.confirmed_at = new Date().toISOString(); api._sysMsg(tripId, `${myProfile.display_name} ha confirmado que viaja`); } return; }
+    const { error } = await sb.rpc("confirm_trip", { p_trip_id: tripId });
+    if(error) throw error;
+  },
+  async removeMember(tripId, userId){
+    if(DEMO){
+      const t = demoState.trips.find(x=>x.id===tripId); const m = (demoState.members[tripId]||[]).find(x=>x.user_id===userId);
+      demoState.members[tripId] = (demoState.members[tripId]||[]).filter(x=>x.user_id!==userId);
+      (demoState.removed[tripId] = demoState.removed[tripId]||[]).push(userId);
+      t.seats_taken = Math.max(0, t.seats_taken-1); if(t.status==="completo") t.status="abierto";
+      api._sysMsg(tripId, `El conductor ha quitado a ${m?.display_name||"un pasajero"} del viaje`); return;
+    }
+    const { error } = await sb.rpc("remove_member", { p_trip_id: tripId, p_user_id: userId });
+    if(error) throw error;
+  },
+  async getGroupLink(tripId){
+    if(DEMO) return demoState.private[tripId] || "";
+    const { data } = await sb.from("trip_private").select("group_link").eq("trip_id", tripId).maybeSingle();
+    return data?.group_link || "";
+  },
+  async setGroupLink(tripId, link){
+    if(DEMO){ demoState.private[tripId] = link; return; }
+    const { error } = await sb.from("trip_private").upsert({ trip_id: tripId, group_link: link || null, updated_at: new Date().toISOString() });
+    if(error) throw error;
+  },
+  async demandStats(){
+    if(DEMO){
+      const rows = demoState.demand.concat(demoState.signatures.map(x=>[x.origin_city,x.dest_city,x.need,1]));
+      const map = {};
+      rows.forEach(([o,d,need,n]) => { const k=o+"|"+d; map[k] = map[k] || { origin_city:o, dest_city:d, total:0, diario:0, semanal:0, puntual:0 }; map[k].total+=n; map[k][need]+=n; });
+      const routes = Object.values(map).sort((a,b)=>b.total-a.total);
+      const signatures = routes.reduce((a,r)=>a+r.total,0);
+      return { people: Math.round(signatures*0.82), signatures, routes };
+    }
+    const { data, error } = await sb.rpc("demand_stats");
+    if(error) return { people:0, signatures:0, routes:[] };
+    return data;
+  },
+  async mySignatures(){
+    if(!me) return [];
+    if(DEMO) return demoState.signatures.slice();
+    const { data } = await sb.from("demand_signatures").select("origin_city, dest_city, need, created_at").eq("user_id", me.id).order("created_at");
+    return data || [];
+  },
+  async sign(origin, dest, need){
+    if(DEMO){ demoState.signatures = demoState.signatures.filter(x=>!(x.origin_city===origin && x.dest_city===dest)); demoState.signatures.push({ origin_city:origin, dest_city:dest, need, created_at:new Date().toISOString() }); return; }
+    const { error } = await sb.from("demand_signatures").upsert({ user_id: me.id, origin_city: origin, dest_city: dest, need });
+    if(error) throw error;
+  },
+  async unsign(origin, dest){
+    if(DEMO){ demoState.signatures = demoState.signatures.filter(x=>!(x.origin_city===origin && x.dest_city===dest)); return; }
+    const { error } = await sb.from("demand_signatures").delete().eq("user_id", me.id).eq("origin_city", origin).eq("dest_city", dest);
+    if(error) throw error;
   },
   async myTrips(){
     if(DEMO){
       const driving = demoState.trips.filter(t=>t.driver?.id===me.id);
-      const riding = demoState.trips.filter(t=>(demoState.members[t.id]||[]).some(m=>m.user_id===me.id));
+      const riding = demoState.trips.filter(t=>(demoState.members[t.id]||[]).some(m=>m.user_id===me.id)).map(t => Object.assign({}, t, { my_confirmed_at: demoState.members[t.id].find(m=>m.user_id===me.id).confirmed_at }));
       return { driving, riding };
     }
     const [a, b] = await Promise.all([
       sb.from("trips").select("*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)").eq("driver_id", me.id).order("departure_at"),
-      sb.from("trip_members").select("trip:trips(*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url))").eq("user_id", me.id)
+      sb.from("trip_members").select("confirmed_at, trip:trips(*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url))").eq("user_id", me.id)
     ]);
-    return { driving: a.data||[], riding: (b.data||[]).map(r=>r.trip).filter(Boolean).sort((x,y)=>new Date(x.departure_at)-new Date(y.departure_at)) };
+    return { driving: a.data||[], riding: (b.data||[]).filter(r=>r.trip).map(r=>Object.assign({}, r.trip, { my_confirmed_at: r.confirmed_at })).sort((x,y)=>new Date(x.departure_at)-new Date(y.departure_at)) };
   },
   async deleteAccount(){
     if(DEMO){ await api.signOut(); return; }
@@ -731,8 +888,16 @@ function setNav(key){
   document.querySelectorAll("nav.main a").forEach(a => a.classList.toggle("active", a.dataset.nav === key));
   $("#nav").classList.remove("open");
 }
-let firstRoute = true;
+let firstRoute = true, lastRouteHash = "#/", pendingAnchor = null;
 async function route(){
+  const raw = location.hash;
+  if(raw && !raw.startsWith("#/")){
+    const anchor = decodeURIComponent(raw.slice(1));
+    const el = document.getElementById(anchor);
+    history.replaceState(null, "", lastRouteHash);
+    if(el){ el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start" }); return; }
+    pendingAnchor = anchor;
+  }
   if(cleanup){ cleanup(); cleanup = null; }
   if(!firstRoute && !matchMedia("(prefers-reduced-motion: reduce)").matches){ app.classList.add("leaving"); await new Promise(r => setTimeout(r, 150)); requestAnimationFrame(() => app.classList.remove("leaving")); }
   firstRoute = false;
@@ -743,7 +908,9 @@ async function route(){
   const params = Object.fromEntries(new URLSearchParams(qs||""));
   window.scrollTo({ top:0, behavior:"instant" });
   document.body.classList.remove("home");
-  if(path === "/") return viewHome(params);
+  lastRouteHash = location.hash || "#/";
+  if(path === "/"){ await viewHome(params); if(pendingAnchor){ const el = document.getElementById(pendingAnchor); pendingAnchor = null; if(el) setTimeout(() => el.scrollIntoView({ behavior:"smooth", block:"start" }), 60); } return; }
+  if(path === "/transporte") return viewTransport(params);
   if(path === "/publicar") return viewPublish();
   if(path.startsWith("/viaje/")) return viewTrip(path.split("/")[2]);
   if(path.startsWith("/editar/")) return viewPublish(path.split("/")[2]);
@@ -807,7 +974,7 @@ function viewHome(p){
   <section class="hero" aria-label="Inicio">
     <div class="topline">
       <span class="mono">BlaBlaHelp</span>
-      <nav aria-label="Principal"><a href="#buscar">Buscar viaje</a><a href="#/publicar" class="hide-m">Publicar plazas</a><a href="#/como-funciona" class="hide-m">Cómo funciona</a>${authLink}</nav>
+      <nav aria-label="Principal"><a href="#buscar">Buscar viaje</a><a href="#/publicar" class="hide-m">Publicar plazas</a><a href="#/transporte" class="hide-m">Pide transporte</a><a href="#/como-funciona" class="hide-m">Cómo funciona</a>${authLink}</nav>
     </div>
     <h1><span class="line"><span>BlaBla</span></span><span class="line"><span>Help</span></span></h1>
     <div class="foot">
@@ -819,6 +986,7 @@ function viewHome(p){
     </div>
   </section>
   <section class="search-band" id="buscar" aria-label="Buscar viaje">
+    <div id="dueBanner" style="margin-bottom:16px"></div>
     <form class="search" id="searchForm">
       <div class="field origin"><label for="fo">Salgo de</label><select id="fo">${cityOptions(p.o)}</select></div>
       <button type="button" class="swap" id="swap" aria-label="Intercambiar origen y destino"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3"/></svg></button>
@@ -885,11 +1053,27 @@ function viewHome(p){
     <ol id="posterList">${DESTINOS.map((d,i)=>`<li class="reveal" data-d="${Math.min(6,i)}"><a href="#/?o=Madrid&d=${encodeURIComponent(d)}" data-dest="${esc(d)}"><span>${esc(d)}</span><span class="n">…</span></a></li>`).join("")}</ol>
   </section>
 
+  <section class="demand" aria-labelledby="demandTitle">
+    <div class="grid">
+      <div class="dm-text">
+        <h2 id="demandTitle" class="reveal">Falta transporte público</h2>
+        <p class="reveal" data-d="1">Si no encuentras cómo viajar, firma tu trayecto. Sumamos las firmas para que se vea cuánta gente se ha quedado sin transporte.</p>
+        <div class="dm-count reveal" data-d="2"><span class="big" id="dmPeople">…</span><span id="dmLabel">personas han firmado</span></div>
+        <p class="reveal" data-d="3"><a class="btn accent" href="#/transporte">Firmar mi trayecto</a></p>
+      </div>
+      <div class="dm-list reveal" data-d="2">
+        <ol class="dlist on-dark" id="dmList"></ol>
+        <a class="small" href="#/transporte" style="color:var(--field-ink)">Ver todos los trayectos</a>
+      </div>
+    </div>
+  </section>
+
   <section class="section faq" aria-labelledby="faqTitle" style="padding-top:var(--gap)">
     <div class="row"><p class="q head reveal" id="faqTitle">Lo que suele preguntarse</p></div>
     <div class="row"><p class="q reveal">¿Cuánto se paga?</p><p class="a reveal" data-d="1">Cada viaje es gratis o a pachas. Si es a pachas, los gastos reales del trayecto (combustible y peajes) se reparten entre todos los que vais en el coche, y cómo y cuánto lo acordáis en el grupo privado del viaje. La web no fija precios, no cobra nada y no gestiona pagos.</p></div>
     <div class="row"><p class="q reveal">¿Cómo contacto sin dar mi teléfono?</p><p class="a reveal" data-d="1">Al apuntarte entras en el grupo privado del viaje, que solo ven el conductor y los pasajeros apuntados. Allí acordáis el punto de encuentro y la hora. Si queréis pasaros el teléfono, lo decidís vosotros; la web no lo pide ni lo guarda.</p></div>
     <div class="row"><p class="q reveal">¿Qué pasa cuando se llenan las plazas?</p><p class="a reveal" data-d="1">El viaje se cierra solo y deja de admitir inscripciones. Si alguien se desapunta, vuelve a abrirse. Por eso conviene desapuntarse en cuanto cambien tus planes: liberas el sitio para otra persona.</p></div>
+    <div class="row"><p class="q reveal">¿Y si me apunto y luego no puedo ir?</p><p class="a reveal" data-d="1">Pulsa "Ya no viajo" y tu plaza queda libre al momento. Para que no queden huecos fantasma, 48 horas antes de la salida cada pasajero tiene que confirmar que viaja; si a 12 horas no lo ha hecho, la plaza se libera sola. El conductor también puede quitar del viaje a quien no responda.</p></div>
     <div class="row"><p class="q reveal">¿Quién verifica a los conductores?</p><p class="a reveal" data-d="1">Nadie más allá del inicio de sesión con Google, que evita perfiles anónimos. BlaBlaHelp no comprueba carnés ni vehículos y no es parte del acuerdo entre viajeros. Aplica el sentido común: comparte tu plan con alguien de confianza y no subas si algo no te cuadra.</p></div>
     <div class="row"><p class="q reveal">¿Hasta cuándo estará activa?</p><p class="a reveal" data-d="1">Mientras la alta velocidad Madrid–Andalucía siga interrumpida y haya gente que la necesite. Después se cerrará y se borrarán todos los datos. Los viajes caducan a los 30 días de su salida.</p></div>
   </section>
@@ -960,7 +1144,7 @@ function viewHome(p){
     $("#resTitle").innerHTML = (parts.length ? `Viajes ${parts.join(" ")}` : "Próximos viajes") + ` <span class="count">${rows.length}</span>`;
     $("#results").style.opacity = "";
     $("#results").innerHTML = rows.length ? `<div class="trips">${rows.map((t,i)=>tripCard(t,i)).join("")}</div>`
-      : `<div class="empty"><h3>Todavía no hay viajes con esos criterios</h3><p>Prueba sin fecha o con una localidad cercana. Y si vas a hacer tú ese trayecto, <a href="#/publicar">publícalo</a>: alguien lo está buscando.</p></div>`;
+      : `<div class="empty"><h3>Todavía no hay viajes con esos criterios</h3><p>Prueba sin fecha o con una localidad cercana. Si vas a hacer tú ese trayecto, <a href="#/publicar">publícalo</a>: alguien lo está buscando.</p>${f.origin && f.dest ? `<p style="margin-top:18px"><a class="btn accent" href="#/transporte?o=${encodeURIComponent(f.origin)}&d=${encodeURIComponent(f.dest)}">Necesito este trayecto: firmar ${esc(f.origin)} → ${esc(f.dest)}</a></p>` : `<p><a href="#/transporte">Firma el trayecto que necesitas</a> para que se vea la falta de transporte.</p>`}</div>`;
     watchReveals();
     if(mode==="map") drawMap(rows);
   }
@@ -993,7 +1177,22 @@ function viewHome(p){
       a.querySelector(".n").textContent = n === 0 ? "sin viajes aún" : n === 1 ? "1 viaje publicado" : `${n} viajes publicados`;
     });
   }
-  loadResults(); loadPoster(); watchReveals();
+  async function loadDemand(){
+    const st = await api.demandStats();
+    if(!$("#dmPeople")) return;
+    $("#dmPeople").textContent = (st.people||0).toLocaleString("es-ES");
+    $("#dmLabel").textContent = st.people === 1 ? "persona ha firmado" : "personas han firmado";
+    $("#dmList").innerHTML = st.routes?.length ? demandRows(st.routes, 5) : `<li class="small" style="color:var(--field-soft)">Aún no hay firmas. La tuya puede ser la primera.</li>`;
+  }
+  async function loadDue(){
+    if(!me || !$("#dueBanner")) return;
+    const { riding } = await api.myTrips().catch(()=>({ riding:[] }));
+    const due = riding.filter(t => t.status !== "cancelado" && !t.my_confirmed_at && inConfirmWindow(t));
+    if(due.length && $("#dueBanner")){
+      $("#dueBanner").innerHTML = `<div class="notice">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar":`Tienes ${due.length} viajes por confirmar`}.</b> Si no confirmas 12 horas antes de salir, la plaza se libera. <a href="#/mis-viajes">Confirmar ahora</a></div></div>`;
+    }
+  }
+  loadResults(); loadPoster(); loadDemand(); loadDue(); watchReveals();
   cleanup = () => { if(mapInst){ mapInst.remove(); mapInst = null; } document.body.classList.remove("home"); };
 }
 
@@ -1120,20 +1319,42 @@ async function viewPublish(editId){
 }
 
 /* ---------------- Vista: detalle de viaje ---------------- */
+const fmtWhen = d => { const x = new Date(d); const day = x.toLocaleDateString("es-ES",{ weekday:"long", day:"numeric", month:"long" }); return `${day} a las ${fmtTime(x.toISOString())}`; };
+const X_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+const CHECK_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>';
+function confirmBox(t, mine){
+  if(mine.confirmed_at) return `<div class="confirm ok"><span class="dot">${CHECK_ICON}</span><div><b>Has confirmado que viajas.</b><br><span class="small">El conductor ya lo ve. Si cambias de planes, pulsa "Ya no viajo".</span></div></div>`;
+  if(inConfirmWindow(t)){
+    const past = Date.now() >= confirmDeadline(t).getTime();
+    return `<div class="confirm due"><div><b>Confirma que sigues viajando.</b><br><span class="small">${past ? "El plazo ha vencido y tu plaza puede liberarse en cualquier momento." : `Tienes hasta el ${fmtWhen(confirmDeadline(t))}. Si no confirmas, la plaza se liberará para otra persona.`}</span></div><button class="btn accent" id="confirmBtn">Confirmo que viajo</button></div>`;
+  }
+  return `<div class="confirm wait"><div><b>Te pediremos que confirmes.</b><br><span class="small">A partir del ${fmtWhen(confirmOpensAt(t))} tendrás que pulsar "Confirmo que viajo" en esta página. Si no lo haces 12 horas antes de salir, la plaza se libera.</span></div></div>`;
+}
 async function viewTrip(id){
   setNav(null);
   app.innerHTML = `<section class="page"><div class="wrap"><div class="skeleton"></div></div></section>`;
   let t = await api.getTrip(id);
-  if(!t){ app.innerHTML = `<section class="page narrow"><div class="wrap panel empty"><h3>Este viaje ya no está disponible</h3><p>Puede que el conductor lo haya eliminado. <a href="#/">Busca otro viaje</a>.</p></div></section>`; return; }
-  let members = [], msgs = [];
+  const gone = () => { app.innerHTML = `<section class="page narrow"><div class="wrap"><div class="empty"><h3>Este viaje ya no está disponible</h3><p>Puede que el conductor lo haya eliminado. <a href="#/">Busca otro viaje</a>.</p></div></div></section>`; };
+  if(!t){ gone(); return; }
+  let members = [], msgs = [], groupLink = "", editingLink = false;
   async function refresh(){
-    t = await api.getTrip(id) || t;
-    const canSee = me && (isDriver(t) || members.some(m=>m.user_id===me.id));
+    const fresh = await api.getTrip(id);
+    if(!fresh){ gone(); return; }
+    t = fresh;
     members = me ? await api.members(id).catch(()=>[]) : [];
     const amMember = me && members.some(m=>m.user_id===me.id);
-    msgs = (amMember || isDriver(t)) ? await api.messages(id) : [];
+    const part = amMember || isDriver(t);
+    [msgs, groupLink] = part ? await Promise.all([api.messages(id), api.getGroupLink(id).catch(()=> "")]) : [[], ""];
+    const draft = $("#chatInput")?.value || "", hadFocus = document.activeElement?.id === "chatInput";
     render(amMember);
-    void canSee;
+    if($("#chatInput")){ $("#chatInput").value = draft; if(hadFocus) $("#chatInput").focus(); }
+  }
+  function memberChip(m, driver){
+    const self = me && m.user_id === me.id;
+    const state = m.confirmed_at ? `<span class="mstate ok" title="Ha confirmado">${CHECK_ICON}<span>Confirmado</span></span>` : `<span class="mstate">Sin confirmar</span>`;
+    const x = driver ? `<button class="mx" data-remove="${esc(m.user_id)}" data-name="${esc(m.display_name||"Viajero")}" aria-label="Quitar a ${esc(m.display_name||"este viajero")} del viaje" title="Quitar del viaje">${X_ICON}</button>`
+            : self ? `<button class="mx" data-leave aria-label="Ya no viajo" title="Ya no viajo">${X_ICON}</button>` : "";
+    return `<li class="member-row${self?" self":""}"><span class="avatar">${m.avatar_url?`<img src="${esc(m.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(m.display_name)}</span><span class="mname">${esc(m.display_name||"Viajero")}${self?" (tú)":""}</span>${state}${x}</li>`;
   }
   function render(amMember){
     const free = t.seats_total - t.seats_taken;
@@ -1141,21 +1362,38 @@ async function viewTrip(id){
     const full = free <= 0 || t.status === "completo";
     const cancelled = t.status === "cancelado";
     const past = new Date(t.departure_at).getTime() < Date.now();
+    const mine = members.find(m => me && m.user_id === me.id);
     let action = "";
     if(cancelled) action = `<div class="notice danger">${ICON.info}<div>${driver ? "Has cancelado este viaje." : "El conductor ha cancelado este viaje."}</div></div>${driver ? `<div class="owner-actions"><button class="btn danger" id="deleteBtn">Eliminar definitivamente</button></div>` : ""}`;
-    else if(driver) action = `<div class="notice ok">${ICON.info}<div>Este viaje es tuyo. Tienes ${t.seats_taken} de ${t.seats_total} plazas ocupadas.</div></div>
+    else if(driver) action = `
+      <div class="seat-ctl">
+        <div><b>Plazas libres</b><br><span class="small muted">${t.seats_taken} ocupadas de ${t.seats_total}</span></div>
+        <div class="stepper" role="group" aria-label="Cambiar número de plazas">
+          <button class="step" id="seatMinus" aria-label="Una plaza menos" ${t.seats_total<=Math.max(1,t.seats_taken)?"disabled":""}>−</button>
+          <span class="val" aria-live="polite">${t.seats_total}</span>
+          <button class="step" id="seatPlus" aria-label="Una plaza más" ${t.seats_total>=6?"disabled":""}>+</button>
+        </div>
+      </div>
       <div class="owner-actions">
         <a class="btn" href="#/editar/${t.id}">Editar viaje</a>
         <button class="btn secondary" id="cancelBtn">Cancelar viaje</button>
         <button class="btn danger" id="deleteBtn">Eliminar</button>
       </div>`;
-    else if(amMember) action = `<div class="notice ok">${ICON.info}<div>Estás apuntado a este viaje. Concreta los detalles en el grupo.</div></div><button class="btn secondary block" id="leaveBtn" style="margin-top:12px">Dejar el viaje</button>`;
+    else if(amMember) action = `${past ? `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>` : confirmBox(t, mine)}<button class="btn secondary block" id="leaveBtn" style="margin-top:12px">${X_ICON} Ya no viajo</button>`;
     else if(past) action = `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>`;
     else if(full) action = `<div class="notice">${ICON.info}<div>Viaje completo. Si alguien se desapunta, volverá a abrirse. <a href="#/?o=${encodeURIComponent(t.origin_city)}&d=${encodeURIComponent(t.dest_city)}">Buscar alternativas</a>.</div></div>`;
-    else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button><p class="small muted" style="margin:10px 0 0;text-align:center">Al apuntarte entras en el grupo privado del viaje y ocupas una plaza. Si cambias de planes, desapúntate para liberarla.</p>`;
+    else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button><p class="small muted" style="margin:10px 0 0;text-align:center">Entrarás en el grupo privado del viaje. 48 horas antes de salir te pediremos que confirmes; si cambias de planes, pulsa "Ya no viajo" y la plaza queda libre.</p>`;
 
-    const memberChips = members.length ? members.map(m => `<span class="member"><span class="avatar">${m.avatar_url?`<img src="${esc(m.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(m.display_name)}</span>${esc(m.display_name||"Viajero")}</span>`).join("") : `<span class="muted small">Todavía nadie se ha apuntado.</span>`;
+    const pendingCount = members.filter(m=>!m.confirmed_at).length;
+    const membersHtml = !me ? `<p class="muted small">Inicia sesión para ver quién va.</p>`
+      : members.length ? `<ul class="member-list">${members.map(m=>memberChip(m, driver && !cancelled)).join("")}</ul>${driver && pendingCount && inConfirmWindow(t) ? `<p class="small muted" style="margin:10px 0 0">${pendingCount===1?"Una persona no ha confirmado":`${pendingCount} personas no han confirmado`}. Si no lo hacen antes del ${fmtWhen(confirmDeadline(t))}, sus plazas se liberan solas.</p>` : ""}`
+      : `<p class="muted small">Todavía nadie se ha apuntado.</p>`;
     const canChat = me && (driver || amMember);
+    const linkHtml = !canChat ? "" : (driver && (editingLink || !groupLink)) && !cancelled
+      ? `<form class="glink-form" id="linkForm"><label for="linkInput" class="small muted">¿Preferís seguir por WhatsApp o Telegram? Pega aquí el enlace de invitación del grupo y solo lo verán los apuntados.</label><div class="row"><input id="linkInput" type="url" inputmode="url" placeholder="https://chat.whatsapp.com/…" value="${esc(groupLink)}" maxlength="300"><button class="btn sm" type="submit">Guardar</button>${groupLink?`<button class="btn sm secondary" type="button" id="linkCancel">Cancelar</button>`:""}</div></form>`
+      : groupLink ? `<div class="glink"><div><b>Grupo externo del viaje</b><br><span class="small muted">${/whatsapp/i.test(groupLink)?"WhatsApp":/t\.me|telegram/i.test(groupLink)?"Telegram":"Enlace del conductor"}</span></div><a class="btn sm accent" href="${esc(groupLink)}" target="_blank" rel="noopener noreferrer">Abrir grupo</a>${driver?`<button class="btn sm secondary" id="linkEdit">Cambiar</button>`:""}</div>`
+      : `<p class="small muted glink-none">El conductor aún no ha compartido un grupo externo. Podéis organizaros por aquí.</p>`;
+
     app.innerHTML = `<section class="page"><div class="wrap">
       <a href="#/" class="small muted" style="text-decoration:none">← Volver a la búsqueda</a>
       <div class="detail" style="margin-top:14px">
@@ -1181,35 +1419,73 @@ async function viewTrip(id){
             <p style="white-space:pre-wrap">${esc(t.description)}</p>
             <div class="driver" style="display:flex;align-items:center;gap:10px;padding-top:18px;margin-top:8px">
               <div class="avatar">${t.driver?.avatar_url?`<img src="${esc(t.driver.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(t.driver?.display_name)}</div>
-              <div><div style="font-weight:600">${esc(t.driver?.display_name||"Conductor")}</div><div class="small muted">Conduce este viaje · identidad verificada con Google</div></div>
+              <div><div style="font-weight:600">${esc(t.driver?.display_name||"Conductor")}</div><div class="small muted">Conduce este viaje · cuenta verificada con Google</div></div>
             </div>
           </div>
           <div class="panel box">${action}</div>
-          <p class="small muted" style="margin-top:14px">${esc(CFG.siteName)} no verifica vehículos ni conductores y no participa en el acuerdo entre viajeros. Usa el sentido común: comparte tu plan con alguien de confianza y, si algo no te cuadra, no subas. <a href="mailto:${esc(CFG.contactEmail)}?subject=Reporte viaje ${t.id}">Reportar este viaje</a>.</p>
+          <div class="panel box tips">
+            <h3>Para viajar con tranquilidad</h3>
+            <ul>
+              <li>Hablad en el grupo antes del día: presentaos, quién lleva qué equipaje y dónde quedáis.</li>
+              <li>Quedad en un sitio público y conocido, como una estación o un centro comercial.</li>
+              <li>Comparte con alguien de confianza la matrícula, la hora de salida y la de llegada prevista.</li>
+              <li>Si algo no te cuadra el día del viaje, no subas. Pulsa "Ya no viajo" y busca otro.</li>
+            </ul>
+            <p class="small muted" style="margin:0">${esc(CFG.siteName)} no verifica vehículos ni conductores y no participa en el acuerdo entre viajeros. <a href="mailto:${esc(CFG.contactEmail)}?subject=Reporte viaje ${t.id}">Reportar este viaje</a>.</p>
+          </div>
         </div>
         <div>
           <div class="panel box">
             <h3>Viajeros apuntados <span class="muted" style="font-weight:400;font-size:.95rem">(${t.seats_taken}/${t.seats_total})</span></h3>
-            <div class="members">${me ? memberChips : `<span class="muted small">Inicia sesión para ver quién va.</span>`}</div>
+            ${membersHtml}
           </div>
           <div class="panel box">
             <h3>Grupo del viaje</h3>
+            ${linkHtml}
             ${canChat ? `<div class="chat"><div class="log" id="chatLog"></div><form id="chatForm"><input id="chatInput" maxlength="600" placeholder="Escribe al grupo…" autocomplete="off"><button class="btn">Enviar</button></form></div><p class="small muted" style="margin:10px 0 0">Solo lo ven el conductor y las personas apuntadas. Aquí podéis acordar el punto exacto y, si queréis, intercambiar teléfonos.</p>`
             : `<div class="locked">${ICON.lock}<div><b>Grupo privado</b><br><span class="small">${me ? "Apúntate al viaje para entrar en el grupo y hablar con el conductor." : "Inicia sesión y apúntate al viaje para entrar en el grupo."}</span></div></div>`}
           </div>
         </div>
       </div></div></section>`;
 
+    const leaveFlow = () => {
+      modal(`<h3>¿Ya no viajas?</h3><p class="muted">Tu plaza quedará libre para otra persona y saldrás del grupo. El conductor verá un aviso.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Sigo viajando</button><button class="btn danger" id="mYes">Ya no viajo</button></div>`);
+      $("#mNo").onclick = closeModal;
+      $("#mYes").onclick = async () => { closeModal(); try{ await api.leave(id); toast("Plaza liberada. Gracias por avisar.", "ok"); }catch(err){ toast(err.message, "err"); } await refresh(); };
+    };
     if($("#joinBtn")) $("#joinBtn").onclick = async () => {
       if(!me) return requireLogin("Para apuntarte a un viaje necesitas identificarte.");
       $("#joinBtn").disabled = true;
       try{ await api.join(id); toast("Te has apuntado. Saluda en el grupo.", "ok"); await refresh(); }
       catch(err){ toast(err.message||"No se pudo completar", "err"); await refresh(); }
     };
-    if($("#leaveBtn")) $("#leaveBtn").onclick = () => {
-      modal(`<h3>¿Dejar el viaje?</h3><p class="muted">Liberarás tu plaza para otra persona y saldrás del grupo.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn secondary" id="mNo">Quedarme</button><button class="btn danger" id="mYes">Dejar el viaje</button></div>`);
+    if($("#leaveBtn")) $("#leaveBtn").onclick = leaveFlow;
+    document.querySelectorAll("[data-leave]").forEach(b => b.onclick = leaveFlow);
+    if($("#confirmBtn")) $("#confirmBtn").onclick = async () => {
+      $("#confirmBtn").disabled = true;
+      try{ await api.confirm(id); toast("Confirmado. ¡Buen viaje!", "ok"); }catch(err){ toast(err.message, "err"); }
+      await refresh();
+    };
+    document.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => {
+      const name = b.dataset.name;
+      modal(`<h3>¿Quitar a ${esc(name)}?</h3><p class="muted">Su plaza quedará libre y no podrá volver a apuntarse a este viaje. Se avisará en el grupo. Úsalo si no responde, no confirma o no va a venir.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Volver</button><button class="btn danger" id="mYes">Quitar del viaje</button></div>`);
       $("#mNo").onclick = closeModal;
-      $("#mYes").onclick = async () => { closeModal(); try{ await api.leave(id); toast("Has dejado el viaje"); }catch(err){ toast(err.message, "err"); } await refresh(); };
+      $("#mYes").onclick = async () => { closeModal(); try{ await api.removeMember(id, b.dataset.remove); toast(`${name} ya no está en el viaje`); }catch(err){ toast(err.message, "err"); } await refresh(); };
+    });
+    const setSeats = async n => {
+      try{ await api.updateTrip(id, { seats_total: n }); }catch(err){ toast(err.message, "err"); }
+      await refresh();
+    };
+    if($("#seatMinus")) $("#seatMinus").onclick = () => setSeats(t.seats_total - 1);
+    if($("#seatPlus")) $("#seatPlus").onclick = () => setSeats(t.seats_total + 1);
+    if($("#linkEdit")) $("#linkEdit").onclick = () => { editingLink = true; render(amMember); $("#linkInput")?.focus(); };
+    if($("#linkCancel")) $("#linkCancel").onclick = () => { editingLink = false; render(amMember); };
+    if($("#linkForm")) $("#linkForm").onsubmit = async e => {
+      e.preventDefault();
+      const v = $("#linkInput").value.trim();
+      if(v && !/^https:\/\/\S+$/.test(v)){ toast("Pega un enlace completo que empiece por https://", "err"); return; }
+      try{ await api.setGroupLink(id, v); groupLink = v; editingLink = false; toast(v ? "Enlace compartido con el grupo" : "Enlace quitado", "ok"); render(amMember); }
+      catch(err){ toast("No se pudo guardar el enlace", "err"); }
     };
     if($("#deleteBtn")) $("#deleteBtn").onclick = () => {
       const n = t.seats_taken;
@@ -1218,7 +1494,7 @@ async function viewTrip(id){
       $("#mYes").onclick = async () => { closeModal(); try{ await api.deleteTrip(id); toast("Viaje eliminado"); location.hash = "#/mis-viajes"; }catch(err){ toast(err.message, "err"); await refresh(); } };
     };
     if($("#cancelBtn")) $("#cancelBtn").onclick = () => {
-      modal(`<h3>¿Cancelar el viaje?</h3><p class="muted">Las personas apuntadas lo verán como cancelado. Si puedes, avísales antes en el grupo.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn secondary" id="mNo">Volver</button><button class="btn danger" id="mYes">Cancelar viaje</button></div>`);
+      modal(`<h3>¿Cancelar el viaje?</h3><p class="muted">Las personas apuntadas lo verán como cancelado y recibirán un aviso en el grupo.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Volver</button><button class="btn danger" id="mYes">Cancelar viaje</button></div>`);
       $("#mNo").onclick = closeModal;
       $("#mYes").onclick = async () => { closeModal(); try{ await api.cancelTrip(id); toast("Viaje cancelado"); }catch(err){ toast(err.message, "err"); } await refresh(); };
     };
@@ -1251,24 +1527,134 @@ async function viewMine(){
     $("#mineLogin").onclick = () => api.signIn(); return;
   }
   app.innerHTML = `<section class="page"><div class="wrap"><h1>Mis viajes</h1><div class="skeleton"></div></div></section>`;
-  const { driving, riding } = await api.myTrips();
-  const block = (title, rows, emptyMsg) => `<h2 style="margin-top:28px">${title}</h2>${rows.length?`<div class="trips">${rows.map((t,i)=>tripCard(t,i)).join("")}</div>`:`<div class="panel empty"><p>${emptyMsg}</p></div>`}`;
+  const [{ driving, riding }, sigs] = await Promise.all([api.myTrips(), api.mySignatures()]);
+  const now = Date.now();
+  const upcoming = r => r.filter(t => new Date(t.departure_at).getTime() > now - 2*3600e3);
+  const ridingCard = (t, i) => {
+    const cancelled = t.status === "cancelado";
+    let state = "";
+    if(cancelled) state = `<span class="mstate danger">Cancelado por el conductor</span>`;
+    else if(t.my_confirmed_at) state = `<span class="mstate ok">${CHECK_ICON}<span>Confirmado</span></span>`;
+    else if(inConfirmWindow(t)) state = `<button class="btn sm accent" data-confirm="${t.id}">Confirmo que viajo</button>`;
+    else state = `<span class="mstate">Confirmar desde el ${confirmOpensAt(t).toLocaleDateString("es-ES",{ day:"numeric", month:"short" })}</span>`;
+    return `<div class="trip-wrap">${tripCard(t, i)}<div class="trip-actions">${state}${cancelled ? "" : `<button class="btn sm secondary" data-leave="${t.id}">${X_ICON} Ya no viajo</button>`}</div></div>`;
+  };
+  const dr = upcoming(driving), rd = upcoming(riding);
+  const due = rd.filter(t => t.status !== "cancelado" && !t.my_confirmed_at && inConfirmWindow(t));
+  const NEED = { diario:"A diario", semanal:"Cada semana", puntual:"Una vez" };
   app.innerHTML = `<section class="page"><div class="wrap">
     <h1>Mis viajes</h1>
-    ${block("Conduzco", driving, 'Todavía no has publicado ningún viaje. <a href="#/publicar">Publica tus plazas libres</a>.')}
-    ${block("Voy de pasajero", riding, 'No estás apuntado a ningún viaje. <a href="#/">Busca uno</a>.')}
-    <div class="panel box" style="margin-top:40px">
+    ${due.length ? `<div class="notice" style="margin-bottom:8px">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar.":`Tienes ${due.length} viajes por confirmar.`}</b> Si no confirmas 12 horas antes de la salida, la plaza se libera para otra persona.</div></div>` : ""}
+    <h2 style="margin-top:28px">Voy de pasajero</h2>
+    ${rd.length ? `<div class="trips">${rd.map(ridingCard).join("")}</div>` : `<div class="empty"><p>No estás apuntado a ningún viaje. <a href="#/">Busca uno</a>.</p></div>`}
+    <h2 style="margin-top:40px">Conduzco</h2>
+    ${dr.length ? `<div class="trips">${dr.map((t,i)=>`<div class="trip-wrap">${tripCard(t,i)}<div class="trip-actions"><a class="btn sm" href="#/editar/${t.id}">Editar</a><a class="btn sm secondary" href="#/viaje/${t.id}">Ver pasajeros</a></div></div>`).join("")}</div>` : `<div class="empty"><p>Todavía no has publicado ningún viaje. <a href="#/publicar">Publica tus plazas libres</a>.</p></div>`}
+    <h2 style="margin-top:40px">Mis firmas</h2>
+    ${sigs.length ? `<ul class="sig-list">${sigs.map(x=>`<li><span><b>${esc(x.origin_city)} → ${esc(x.dest_city)}</b> <span class="muted small">${NEED[x.need]||""}</span></span><button class="btn sm secondary" data-unsign="${esc(x.origin_city)}|${esc(x.dest_city)}">Retirar firma</button></li>`).join("")}</ul>` : `<div class="empty"><p>No has firmado ningún trayecto. Si te falta cómo viajar, <a href="#/transporte">déjalo por escrito</a>.</p></div>`}
+    <div class="panel box" style="margin-top:56px">
       <h3>Tu cuenta</h3>
-      <p class="muted small">Guardamos únicamente tu nombre, tu correo (para identificarte) y, si Google la facilita, tu foto de perfil. Puedes borrar tu cuenta y todos tus datos en cualquier momento; tus viajes publicados se cancelarán y saldrás de los grupos.</p>
+      <p class="muted small">Guardamos únicamente tu nombre, tu correo (para identificarte) y, si Google la facilita, tu foto de perfil. Puedes borrar tu cuenta y todos tus datos en cualquier momento; tus viajes publicados se cancelarán, saldrás de los grupos y se retirarán tus firmas.</p>
       <button class="btn danger sm" id="delAcc">Eliminar mi cuenta y mis datos</button>
     </div>
   </div></section>`;
   watchReveals();
+  document.querySelectorAll("[data-confirm]").forEach(b => b.onclick = async () => {
+    b.disabled = true; try{ await api.confirm(b.dataset.confirm); toast("Confirmado. ¡Buen viaje!", "ok"); }catch(err){ toast(err.message, "err"); } viewMine();
+  });
+  document.querySelectorAll("[data-leave]").forEach(b => b.onclick = () => {
+    modal(`<h3>¿Ya no viajas?</h3><p class="muted">Tu plaza quedará libre para otra persona y saldrás del grupo. El conductor verá un aviso.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Sigo viajando</button><button class="btn danger" id="mYes">Ya no viajo</button></div>`);
+    $("#mNo").onclick = closeModal;
+    $("#mYes").onclick = async () => { closeModal(); try{ await api.leave(b.dataset.leave); toast("Plaza liberada. Gracias por avisar.", "ok"); }catch(err){ toast(err.message, "err"); } viewMine(); };
+  });
+  document.querySelectorAll("[data-unsign]").forEach(b => b.onclick = async () => {
+    const [o, d] = b.dataset.unsign.split("|");
+    try{ await api.unsign(o, d); toast("Firma retirada"); }catch(err){ toast(err.message, "err"); } viewMine();
+  });
   $("#delAcc").onclick = () => {
-    modal(`<h3>¿Eliminar tu cuenta?</h3><p class="muted">Se borrarán tu perfil, tus viajes, tus mensajes y tus inscripciones. Esta acción no se puede deshacer.</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn secondary" id="mNo">Volver</button><button class="btn danger" id="mYes">Eliminar definitivamente</button></div>`);
+    modal(`<h3>¿Eliminar tu cuenta?</h3><p class="muted">Se borrarán tu perfil, tus viajes, tus mensajes, tus inscripciones y tus firmas. Esta acción no se puede deshacer.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Volver</button><button class="btn danger" id="mYes">Eliminar definitivamente</button></div>`);
     $("#mNo").onclick = closeModal;
     $("#mYes").onclick = async () => { closeModal(); try{ await api.deleteAccount(); toast("Cuenta eliminada"); location.hash = "#/"; }catch(err){ toast(err.message, "err"); } };
   };
+}
+
+/* ---------------- Vista: pide más transporte ---------------- */
+const NEED_LABEL = { diario:"A diario", semanal:"Cada semana", puntual:"Una vez" };
+function demandRows(routes, limit){
+  const max = Math.max(1, ...routes.map(r=>r.total));
+  return routes.slice(0, limit).map(r => `<li class="drow">
+      <div class="dname"><b>${esc(r.origin_city)} → ${esc(r.dest_city)}</b><span class="small muted">${[r.diario?r.diario+" a diario":"", r.semanal?r.semanal+" cada semana":"", r.puntual?r.puntual+" una vez":""].filter(Boolean).join(" · ")}</span></div>
+      <div class="dbar" aria-hidden="true"><i style="width:${Math.max(4, Math.round(r.total/max*100))}%"></i></div>
+      <div class="dnum">${r.total.toLocaleString("es-ES")}</div>
+    </li>`).join("");
+}
+async function viewTransport(p){
+  setNav("transporte");
+  app.innerHTML = `<section class="page"><div class="wrap"><div class="skeleton"></div></div></section>`;
+  const [stats, sigs] = await Promise.all([api.demandStats(), api.mySignatures()]);
+  const mineSet = new Set(sigs.map(x => x.origin_city+"|"+x.dest_city));
+  app.innerHTML = `<section class="page"><div class="wrap">
+    <div class="grid transport-head">
+      <div class="th-text">
+        <h1>Pide más transporte</h1>
+        <p class="lead">Sin trenes entre Madrid y Andalucía, los autobuses y vuelos que quedan no dan abasto. Si necesitas viajar y no encuentras cómo, firma tu trayecto. Las cifras son públicas para que medios y administraciones vean la demanda real.</p>
+      </div>
+      <div class="th-count" aria-live="polite">
+        <span class="big">${(stats.people||0).toLocaleString("es-ES")}</span>
+        <span>${stats.people===1?"persona ha firmado":"personas han firmado"} · ${(stats.signatures||0).toLocaleString("es-ES")} trayectos pedidos</span>
+      </div>
+    </div>
+    <div class="detail transport-body">
+      <div>
+        <h2 class="h-q">Trayectos más pedidos</h2>
+        ${stats.routes?.length ? `<ol class="dlist">${demandRows(stats.routes, 30)}</ol>` : `<div class="empty"><p>Todavía no hay firmas. Sé la primera persona en pedir tu trayecto.</p></div>`}
+        <p class="small muted" style="margin-top:18px">Solo se publican totales por trayecto. Nadie puede ver quién ha firmado.</p>
+      </div>
+      <div>
+        <form class="panel box sign-form" id="signForm">
+          <h3>Firma tu trayecto</h3>
+          <div class="form-grid">
+            <div class="field"><label for="so">Desde</label><select id="so" required>${cityOptions(p.o||"Madrid","Elige localidad")}</select></div>
+            <div class="field"><label for="sd">Hasta</label><select id="sd" required>${cityOptions(p.d||"","Elige localidad")}</select></div>
+          </div>
+          <fieldset style="margin:18px 0 18px">
+            <legend class="small" style="font-size:var(--step-small);font-weight:500;color:var(--muted);margin-bottom:8px">¿Con qué frecuencia lo necesitas?</legend>
+            <div class="chips" id="needChips">${["diario","semanal","puntual"].map((n,i)=>`<button type="button" class="chip${i===1?" on":""}" data-need="${n}">${NEED_LABEL[n]}</button>`).join("")}</div>
+          </fieldset>
+          <button class="btn accent block" type="submit" id="signBtn">${me ? "Firmar este trayecto" : `${ICON.google} Entrar con Google y firmar`}</button>
+          <p class="small muted" style="margin:12px 0 0">Una firma por persona y trayecto. Puedes retirarla cuando quieras desde "Mis viajes".</p>
+        </form>
+        ${sigs.length ? `<div class="panel box" style="margin-top:16px"><h3>Tus firmas</h3><ul class="sig-list">${sigs.map(x=>`<li><span><b>${esc(x.origin_city)} → ${esc(x.dest_city)}</b> <span class="muted small">${NEED_LABEL[x.need]}</span></span><button class="btn sm secondary" data-unsign="${esc(x.origin_city)}|${esc(x.dest_city)}">Retirar</button></li>`).join("")}</ul></div>` : ""}
+      </div>
+    </div>
+  </div></section>`;
+  let need = "semanal";
+  document.querySelectorAll("#needChips .chip").forEach(c => c.onclick = () => { need = c.dataset.need; document.querySelectorAll("#needChips .chip").forEach(x => x.classList.toggle("on", x === c)); });
+  const syncBtn = () => {
+    const k = $("#so").value+"|"+$("#sd").value; const ex = sigs.find(x => x.origin_city+"|"+x.dest_city === k);
+    if(ex){ need = ex.need; document.querySelectorAll("#needChips .chip").forEach(x => x.classList.toggle("on", x.dataset.need === need)); }
+    if(me) $("#signBtn").textContent = ex ? "Actualizar mi firma" : "Firmar este trayecto";
+  };
+  ["so","sd"].forEach(i => $("#"+i).addEventListener("change", syncBtn)); syncBtn();
+  $("#signForm").onsubmit = async e => {
+    e.preventDefault();
+    const o = $("#so").value, d = $("#sd").value;
+    if(!o || !d){ toast("Elige origen y destino", "err"); return; }
+    if(o === d){ toast("Origen y destino no pueden ser la misma localidad", "err"); return; }
+    if(!me){ try{ sessionStorage.setItem("bbh_pending_sign", JSON.stringify({ o, d, need })); }catch(_){} return api.signIn(); }
+    $("#signBtn").disabled = true;
+    try{ await api.sign(o, d, need); toast(mineSet.has(o+"|"+d) ? "Firma actualizada" : "Gracias. Tu firma cuenta.", "ok"); }catch(err){ toast(err.message, "err"); }
+    viewTransport({ o, d });
+  };
+  document.querySelectorAll("[data-unsign]").forEach(b => b.onclick = async () => {
+    const [o, d] = b.dataset.unsign.split("|");
+    try{ await api.unsign(o, d); toast("Firma retirada"); }catch(err){ toast(err.message, "err"); } viewTransport({});
+  });
+}
+async function resumePendingSign(){
+  if(!me) return;
+  let p = null; try{ p = JSON.parse(sessionStorage.getItem("bbh_pending_sign")||"null"); sessionStorage.removeItem("bbh_pending_sign"); }catch(_){}
+  if(!p) return;
+  try{ await api.sign(p.o, p.d, p.need); toast("Gracias. Tu firma cuenta.", "ok"); }catch(_){}
 }
 
 /* ---------------- Vista: cómo funciona ---------------- */
@@ -1283,13 +1669,15 @@ function viewHow(){
       <li>Entra con tu cuenta de Google y publica el viaje: origen, destino, fecha y hora, plazas libres, paradas posibles y una breve descripción.</li>
       <li>Elige si lo haces gratis o a pachas. Si es a pachas, los gastos del trayecto se reparten entre todos y lo acordáis en el grupo privado del viaje.</li>
       <li>Cuando se ocupen todas las plazas, el viaje se marca como completo automáticamente. Si alguien se desapunta, vuelve a abrirse.</li>
-      <li>En el grupo privado del viaje acuerdas con los pasajeros el punto de encuentro exacto. Si no puedes viajar, cancélalo cuanto antes.</li>
+      <li>En el grupo privado del viaje acuerdas con los pasajeros el punto de encuentro exacto. Si lo preferís, comparte ahí el enlace de un grupo de WhatsApp o Telegram; solo lo verán los apuntados.</li>
+      <li>Puedes cambiar las plazas, editar el viaje, quitar a un pasajero que no responde o cancelar en cualquier momento.</li>
     </ul>
     <h2>Si necesitas plaza</h2>
     <ul>
       <li>Busca por origen, destino, fecha y número de plazas, en lista o en mapa. No hace falta cuenta para buscar.</li>
       <li>Para apuntarte sí necesitas identificarte con Google. Mostramos tu nombre de pila y la inicial de tu apellido, nada más.</li>
-      <li>Al apuntarte ocupas una plaza y entras en el grupo del viaje. Si cambias de planes, desapúntate para que otra persona pueda usarla.</li>
+      <li>Al apuntarte ocupas una plaza y entras en el grupo del viaje. Si cambias de planes, pulsa "Ya no viajo" para que otra persona pueda usarla.</li>
+      <li>48 horas antes de la salida tendrás que confirmar que viajas. Si a 12 horas de salir no has confirmado, la plaza se libera automáticamente.</li>
     </ul>
     <h2>Privacidad y contacto</h2>
     <p>Nunca mostramos teléfonos ni correos. El contacto se produce dentro del grupo privado de cada viaje, al que solo acceden el conductor y los pasajeros apuntados. Si en ese grupo decidís intercambiar el teléfono, es decisión vuestra.</p>
@@ -1331,6 +1719,10 @@ function viewLegal(which){
         <li><strong>Datos de cuenta</strong>: al iniciar sesión con Google recibimos tu nombre, tu dirección de correo electrónico y, si está disponible, la URL de tu foto de perfil. No recibimos tu contraseña.</li>
         <li><strong>Datos que publicas</strong>: localidades de origen y destino, zonas de referencia, fecha y hora, número de plazas, descripción del viaje, si es gratis o a pachas, y mensajes dentro de los grupos de viaje.</li>
         <li><strong>Datos técnicos</strong>: dirección IP y registros de acceso mínimos necesarios para la seguridad del servicio, tratados por nuestro proveedor de infraestructura.</li>
+      </ul>
+      <ul>
+        <li><strong>Datos de participación</strong>: si confirmas tu plaza, la fecha de confirmación; si el conductor te quita de un viaje, ese hecho, para que no puedas volver a apuntarte a ese mismo viaje; el enlace a un grupo externo que el conductor decida compartir, visible solo para los participantes.</li>
+        <li><strong>Firmas por falta de transporte</strong>: el trayecto y la frecuencia que indiques. Solo se publican totales por trayecto; nunca quién ha firmado.</li>
       </ul>
       <p><strong>No solicitamos ni almacenamos números de teléfono.</strong> Si decides compartir tu teléfono u otros datos dentro del grupo privado de un viaje, lo haces voluntariamente y bajo tu responsabilidad.</p>
       <h2>Qué mostramos a otros usuarios</h2>
@@ -1387,7 +1779,13 @@ document.addEventListener("click", e => { if(e.target.closest("nav.main a")) $("
 if(DEMO){
   const b = document.createElement("div"); b.className = "demo-badge"; b.textContent = "Modo demostración · datos de ejemplo"; document.body.appendChild(b);
 }
-(async () => { try{ await api.init(); }catch(e){ console.error(e); toast("No se pudo conectar con el servidor", "err"); } renderAuth(); route(); })();
+(async () => {
+  try{ await api.init(); }catch(e){ console.error(e); toast("No se pudo conectar con el servidor", "err"); }
+  renderAuth();
+  let pending = null; try{ pending = sessionStorage.getItem("bbh_pending_sign"); }catch(_){}
+  if(me && pending){ await resumePendingSign(); if(!location.hash.startsWith("#/transporte")) history.replaceState(null, "", "#/transporte"); }
+  route();
+})();
 })();
 </script>
 </body>
