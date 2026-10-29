@@ -3,16 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BlaBlaHelp · Coche compartido solidario Madrid–Andalucía</title>
+<title>Te Hago Hueco · Coche compartido solidario Madrid–Andalucía</title>
 <meta name="description" content="Red ciudadana sin ánimo de lucro para compartir coche entre Madrid, Castilla-La Mancha y Andalucía mientras la alta velocidad permanece interrumpida. Publica tus plazas libres o únete a un viaje.">
-<meta property="og:title" content="BlaBlaHelp · Coche compartido solidario Madrid–Andalucía">
-<meta property="og:description" content="Publica tus plazas libres o únete a un viaje. Sin ánimo de lucro, sin comisiones, sin teléfonos expuestos.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Te Hago Hueco">
+<meta property="og:locale" content="es_ES">
+<meta property="og:url" content="https://tehagohueco.vercel.app/">
+<meta property="og:title" content="Te Hago Hueco · Coche compartido solidario Madrid–Andalucía">
+<meta property="og:description" content="Si bajas en coche y te sobran plazas, alguien las necesita. Sin ánimo de lucro, sin comisiones y sin teléfonos expuestos.">
+<meta property="og:image" content="https://tehagohueco.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Te Hago Hueco: coche compartido solidario entre Madrid y Andalucía">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://tehagohueco.vercel.app/og.png">
+<link rel="canonical" href="https://tehagohueco.vercel.app/">
 <meta name="theme-color" content="#2f4a58">
 <link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
 <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232f4a58'/%3E%3Ctext x='32' y='44' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='34' text-anchor='middle' fill='%23e0a912'%3EBH%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232f4a58'/%3E%3Ctext x='32' y='44' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='34' text-anchor='middle' fill='%23e0a912'%3ETH%3C/text%3E%3C/svg%3E">
 
 <script>
 /* ============================================================
@@ -25,8 +36,8 @@
 window.CAMINO_CONFIG = {
   supabaseUrl: "https://dbmqyczwjuahlydbfgtm.supabase.co",
   supabaseAnonKey: "sb_publishable_IBV9ny5inC9MFPl5kJE1mw_Ql3Epku3",
-  contactEmail: "hola@blablahelp.es",
-  siteName: "BlaBlaHelp",
+  contactEmail: "tehagohueco.contacto@gmail.com",
+  siteName: "Te Hago Hueco",
   ownerName: "Nicolás Renedo de la Lastra",
 };
 </script>
@@ -117,7 +128,7 @@ body.home header.top{display:none}
 .hero .topline nav a.hide-m{display:inline}
 @media (hover:hover){.hero .topline nav a:hover{opacity:1}}
 .hero h1{margin:clamp(24px,6vh,64px) 0 0;font-size:clamp(110px,19.5vw,300px);line-height:.82;letter-spacing:-.045em;font-weight:700}
-.hero h1 .line{display:block;overflow:hidden;padding-bottom:.06em;margin-bottom:-.06em}
+.hero h1 .line{display:block;overflow:hidden;padding-bottom:.2em;margin-bottom:-.2em}
 .hero h1 .line span{display:block;transform:translateY(110%);animation:rise 900ms var(--ease-out) forwards}
 .hero h1 .line:nth-child(2) span{animation-delay:110ms;color:var(--accent)}
 .hero .foot{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:24px;margin-top:32px;opacity:0;animation:fade 700ms var(--ease-out) 650ms forwards}
@@ -130,7 +141,7 @@ body.home header.top{display:none}
 @media (max-width:760px){
   .hero{padding-top:18px;padding-bottom:24px}
   .hero .topline nav a.hide-m{display:none}
-  .hero h1{font-size:29vw;margin-top:10vh}
+  .hero h1{font-size:23vw;margin-top:10vh}
   .hero .foot{grid-template-columns:1fr;gap:28px;margin-top:40px}
   .hero .lead{justify-self:start;text-align:left;justify-items:start;max-width:none}
   .hero .memorial{order:2}
@@ -467,7 +478,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 
 <header class="top">
   <div class="wrap row">
-    <a class="brand" href="#/">BlaBla<b>Help</b></a>
+    <a class="brand" href="#/">Te Hago <b>Hueco</b></a>
     <button class="menu-btn" id="menuBtn" aria-label="Menú" aria-expanded="false">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
@@ -487,10 +498,10 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 <footer>
   <div class="cols">
     <ul>
-      <li>BlaBlaHelp</li>
+      <li>Te Hago Hueco</li>
       <li>Iniciativa ciudadana sin ánimo de lucro</li>
       <li>Madrid, Castilla-La Mancha y Andalucía</li>
-      <li><a href="mailto:hola@blablahelp.es" id="contactLink">hola@blablahelp.es</a></li>
+      <li><a href="mailto:tehagohueco.contacto@gmail.com" id="contactLink">tehagohueco.contacto@gmail.com</a></li>
     </ul>
     <ul>
       <li>Plataforma</li>
@@ -515,8 +526,8 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
   </div>
   <div></div>
   <div>
-    <a class="mark" href="#/" aria-label="BlaBlaHelp, inicio">
-      <svg viewBox="0 0 1000 190" role="img" aria-hidden="true"><text x="-6" y="140" font-family="Switzer,Inter,system-ui,sans-serif" font-weight="700" font-size="188" letter-spacing="-9" fill="currentColor" textLength="1006" lengthAdjust="spacingAndGlyphs">BlaBlaHelp</text></svg>
+    <a class="mark" href="#/" aria-label="Te Hago Hueco, inicio">
+      <svg viewBox="0 0 1000 158" role="img" aria-hidden="true"><text x="-4" y="112" font-family="Switzer,Inter,system-ui,sans-serif" font-weight="700" font-size="146" letter-spacing="-6" fill="currentColor" textLength="1004" lengthAdjust="spacingAndGlyphs">Te Hago Hueco</text></svg>
     </a>
     <p class="legal"><span>Nadie cobra comisiones. Nadie gana dinero. Solo se comparte el camino.</span><span>© 2026 · Sin ánimo de lucro</span></p>
   </div>
@@ -1116,10 +1127,10 @@ function viewHome(p){
   app.innerHTML = `
   <section class="hero" aria-label="Inicio">
     <div class="topline">
-      <span class="mono">BlaBlaHelp</span>
+      <span class="mono">Te Hago Hueco</span>
       <nav aria-label="Principal"><a href="#buscar">Buscar viaje</a><a href="#/publicar" class="hide-m">Publicar plazas</a><a href="#/transporte" class="hide-m">Pide transporte</a><a href="#/como-funciona" class="hide-m">Cómo funciona</a>${authLink}</nav>
     </div>
-    <h1><span class="line"><span>BlaBla</span></span><span class="line"><span>Help</span></span></h1>
+    <h1 aria-label="Te hago hueco"><span class="line"><span>Te hago</span></span><span class="line"><span>hueco.</span></span></h1>
     <div class="foot">
       <p class="memorial"><b>En memoria de las víctimas de Urda, 28 de octubre de 2026.</b>Un abrazo a sus familias y a quienes siguen trabajando allí.</p>
       <div class="lead">
@@ -1171,8 +1182,8 @@ function viewHome(p){
         <p class="reveal" data-d="2"><a class="btn secondary" href="#/como-funciona">Normas y preguntas frecuentes</a></p>
       </div>
       <div class="slip-wrap reveal" data-d="2">
-        <div class="slip" role="img" aria-label="Itinerario de un viaje en BlaBlaHelp, impreso como un tique">
-          <div class="head"><span>BlaBlaHelp</span><span>Tique de viaje</span></div>
+        <div class="slip" role="img" aria-label="Itinerario de un viaje en Te Hago Hueco, impreso como un tique">
+          <div class="head"><span>Te Hago Hueco</span><span>Tique de viaje</span></div>
           <p class="sub">Madrid → Sevilla · 507 km · a pachas</p>
           <h4>Si conduces</h4>
           <div class="row"><span class="l">Entras con Google</span><span class="dots"></span><span class="r">1 min</span></div>
@@ -1218,7 +1229,7 @@ function viewHome(p){
     <div class="row"><p class="q reveal">¿Cómo contacto sin dar mi teléfono?</p><p class="a reveal" data-d="1">Al apuntarte entras en el grupo privado del viaje, que solo ven el conductor y los pasajeros apuntados. Allí acordáis el punto de encuentro y la hora. Si queréis pasaros el teléfono, lo decidís vosotros; la web no lo pide ni lo guarda.</p></div>
     <div class="row"><p class="q reveal">¿Qué pasa cuando se llenan las plazas?</p><p class="a reveal" data-d="1">El viaje se cierra solo y deja de admitir inscripciones. Si alguien se desapunta, vuelve a abrirse. Por eso conviene desapuntarse en cuanto cambien tus planes: liberas el sitio para otra persona.</p></div>
     <div class="row"><p class="q reveal">¿Y si me apunto y luego no puedo ir?</p><p class="a reveal" data-d="1">Pulsa "Ya no viajo" y tu plaza queda libre al momento. Para que no queden huecos fantasma, 48 horas antes de la salida cada pasajero tiene que confirmar que viaja; si a 12 horas no lo ha hecho, la plaza se libera sola. El conductor también puede quitar del viaje a quien no responda.</p></div>
-    <div class="row"><p class="q reveal">¿Quién verifica a los conductores?</p><p class="a reveal" data-d="1">Nadie más allá del inicio de sesión con Google, que evita perfiles anónimos. BlaBlaHelp no comprueba carnés ni vehículos y no es parte del acuerdo entre viajeros. Aplica el sentido común: comparte tu plan con alguien de confianza y no subas si algo no te cuadra.</p></div>
+    <div class="row"><p class="q reveal">¿Quién verifica a los conductores?</p><p class="a reveal" data-d="1">Nadie más allá del inicio de sesión con Google, que evita perfiles anónimos. Te Hago Hueco no comprueba carnés ni vehículos y no es parte del acuerdo entre viajeros. Aplica el sentido común: comparte tu plan con alguien de confianza y no subas si algo no te cuadra.</p></div>
     <div class="row"><p class="q reveal">¿Hasta cuándo estará activa?</p><p class="a reveal" data-d="1">Mientras la alta velocidad Madrid–Andalucía siga interrumpida y haya gente que la necesite. Después se cerrará y se borrarán todos los datos. Los viajes caducan a los 30 días de su salida.</p></div>
   </section>
 
@@ -1806,7 +1817,7 @@ async function viewTransport(p){
     if(so.invalid || sd.invalid){ toast("Elige las localidades de la lista", "err"); return; }
     const o = so.label, d = sd.label;
     if(o === d){ toast("Origen y destino no pueden ser la misma localidad", "err"); return; }
-    if(!me){ try{ sessionStorage.setItem("bbh_pending_sign", JSON.stringify({ o, d, need })); }catch(_){} return api.signIn(); }
+    if(!me){ try{ sessionStorage.setItem("thh_pending_sign", JSON.stringify({ o, d, need })); }catch(_){} return api.signIn(); }
     $("#signBtn").disabled = true;
     try{ await api.sign(o, d, need); toast(mineSet.has(o+"|"+d) ? "Firma actualizada" : "Gracias. Tu firma cuenta.", "ok"); }catch(err){ toast(err.message, "err"); }
     viewTransport({ o, d });
@@ -1818,7 +1829,7 @@ async function viewTransport(p){
 }
 async function resumePendingSign(){
   if(!me) return;
-  let p = null; try{ p = JSON.parse(sessionStorage.getItem("bbh_pending_sign")||"null"); sessionStorage.removeItem("bbh_pending_sign"); }catch(_){}
+  let p = null; try{ p = JSON.parse(sessionStorage.getItem("thh_pending_sign")||"null"); sessionStorage.removeItem("thh_pending_sign"); }catch(_){}
   if(!p) return;
   try{ await api.sign(p.o, p.d, p.need); toast("Gracias. Tu firma cuenta.", "ok"); }catch(_){}
 }
@@ -1955,7 +1966,7 @@ if(DEMO){
 (async () => {
   try{ await api.init(); }catch(e){ console.error(e); toast("No se pudo conectar con el servidor", "err"); }
   renderAuth();
-  let pending = null; try{ pending = sessionStorage.getItem("bbh_pending_sign"); }catch(_){}
+  let pending = null; try{ pending = sessionStorage.getItem("thh_pending_sign"); }catch(_){}
   if(me && pending){ await resumePendingSign(); if(!location.hash.startsWith("#/transporte")) history.replaceState(null, "", "#/transporte"); }
   route();
 })();

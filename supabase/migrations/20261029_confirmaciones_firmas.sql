@@ -1,4 +1,4 @@
--- BlaBlaHelp · Confirmación de plazas, quitar pasajeros, enlace de grupo y firmas por falta de transporte
+-- Te Hago Hueco · Confirmación de plazas, quitar pasajeros, enlace de grupo y firmas por falta de transporte
 -- Ejecutar completo en Supabase > SQL Editor > New query > Run. Se puede ejecutar más de una vez.
 
 alter table public.trip_members add column if not exists confirmed_at timestamptz;

@@ -1,8 +1,9 @@
-# BlaBlaHelp
+# Te Hago Hueco
 
 Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mientras la alta velocidad está interrumpida (accidente de Urda, 28-10-2026).
 
 ## Archivos
+- `og.png`: imagen de vista previa para redes (1200×630). Se regenera con la plantilla de diseño fuera del repositorio si cambia el nombre o el lema.
 - `index.html`: toda la aplicación (HTML, CSS y JS, sin build). Configuración en `window.CAMINO_CONFIG` al principio del archivo. Sin `supabaseUrl` y `supabaseAnonKey` funciona en modo demostración.
 - `schema.sql`: Postgres para Supabase (tablas, RLS, RPC `join_trip`/`leave_trip`/`delete_own_account`, realtime). Idempotente.
 - `SETUP.md`: guía de despliegue paso a paso (Supabase, Google OAuth, hosting, dominio, legal).
@@ -14,16 +15,16 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - Localidades: `municipios.json` (8.132 municipios del INE, paquete `spanish-cities-info`, licencia ISC) se carga bajo demanda; las ciudades de `CITIES` en `index.html` tienen coordenadas de núcleo urbano y se priorizan. Los viajes guardan `origin_lat/lng` y `dest_lat/lng`; la búsqueda filtra por distancia (35 km con "Incluir a 35 km").
 - El routing es por hash (`#/publicar`, `#/viaje/:id`), así que cualquier hosting estático sirve sin reglas de reescritura.
 - Sin precios: cada viaje es `gratis` o `compartir` ("a pachas"); el reparto se acuerda en el grupo. `contribution_eur` siempre es 0.
-- Vercel: proyecto `blablahelp` vinculado al repositorio; cada push a `main` publica en https://blablahelp.vercel.app
+- Vercel: proyecto `tehagohueco` vinculado al repositorio; cada push a `main` publica en https://tehagohueco.vercel.app
 - Nunca guardar teléfonos. Nunca poner la clave `service_role` en el frontend.
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 
 ## Estado
-- Supabase: proyecto `BlaBlaHelp` (ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`, `p1_tables_confirm_private_demand`, `p2_join_confirm_stats`, `p4_realtime_private`, `trip_coordinates` y el SQL manual `supabase/migrations/20261029b_quitar_y_liberar.sql`. Las migraciones que contienen borrados (`delete`) hay que ejecutarlas a mano en el SQL Editor: el conector pide una confirmación que falla. URL y clave publicable ya están en `CAMINO_CONFIG`.
-- Google OAuth activo y publicado; Site URL y Redirect URLs apuntan a https://blablahelp.vercel.app
+- Supabase: proyecto de Supabase llamado `BlaBlaHelp` (nombre interno; ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`, `p1_tables_confirm_private_demand`, `p2_join_confirm_stats`, `p4_realtime_private`, `trip_coordinates` y el SQL manual `supabase/migrations/20261029b_quitar_y_liberar.sql`. Las migraciones que contienen borrados (`delete`) hay que ejecutarlas a mano en el SQL Editor: el conector pide una confirmación que falla. URL y clave publicable ya están en `CAMINO_CONFIG`.
+- Google OAuth activo y publicado. Antes se llamaba BlaBlaHelp y vivía en blablahelp.vercel.app; ese dominio sigue sirviendo la misma web. Site URL y Redirect URLs deben apuntar a https://tehagohueco.vercel.app
 
 ## Despliegue
 1. Supabase: activar Google en Authentication > Providers, configurar Site URL y Redirect URLs con el dominio final.
 2. Google Cloud: cliente OAuth web con redirect `https://<proyecto>.supabase.co/auth/v1/callback`.
-3. `CAMINO_CONFIG` ya apunta al proyecto; cambia `contactEmail` por un correo real.
+3. `CAMINO_CONFIG` ya apunta al proyecto; `contactEmail` es `tehagohueco.contacto@gmail.com`.
 4. Vercel: importar este repositorio (framework "Other", sin build). Conectar el dominio y volver al paso 1 con la URL definitiva.

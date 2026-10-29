@@ -1,4 +1,4 @@
--- BlaBlaHelp · Parte final: quitar pasajeros y liberar plazas sin confirmar
+-- Te Hago Hueco · Parte final: quitar pasajeros y liberar plazas sin confirmar
 -- Pegar completo en Supabase > SQL Editor > New query > Run.
 -- Si pregunta por operaciones destructivas, confirmar: solo crea dos funciones y una tarea programada.
 

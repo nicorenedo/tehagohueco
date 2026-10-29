@@ -1,4 +1,4 @@
-# BlaBlaHelp · Guía de puesta en marcha
+# Te Hago Hueco · Guía de puesta en marcha
 
 Tiempo estimado: 45 a 60 minutos la primera vez. Todo lo necesario es gratuito en los planes básicos.
 
@@ -16,7 +16,7 @@ Mientras `index.html` no tenga configuradas las claves de Supabase, funciona en 
 
 1. Entra en https://supabase.com y crea una cuenta (puedes usar tu Google o GitHub).
 2. "New project":
-   - **Name**: `blablahelp`
+   - **Name**: `tehagohueco`
    - **Database password**: genera una y guárdala (no la necesitarás en la web, solo para administración).
    - **Region**: `West EU (Ireland)` o `Central EU (Frankfurt)`. Importante para RGPD: los datos se quedan en la UE.
 3. Espera uno o dos minutos a que el proyecto esté listo.
@@ -31,11 +31,11 @@ Mientras `index.html` no tenga configuradas las claves de Supabase, funciona en 
 
 ### 2a. En Google Cloud
 
-1. Entra en https://console.cloud.google.com y crea un proyecto (por ejemplo `blablahelp`).
+1. Entra en https://console.cloud.google.com y crea un proyecto (por ejemplo `tehagohueco`).
 2. Menú > **APIs y servicios** > **Pantalla de consentimiento de OAuth**:
    - Tipo de usuario: **Externo**.
-   - Nombre de la aplicación: `BlaBlaHelp`. Correo de asistencia: el tuyo.
-   - Dominios autorizados: añade tu dominio final (por ejemplo `blablahelp.es`) y `supabase.co`.
+   - Nombre de la aplicación: `Te Hago Hueco`. Correo de asistencia: el tuyo.
+   - Dominios autorizados: añade tu dominio final (por ejemplo `tehagohueco.es`) y `supabase.co`.
    - Ámbitos (scopes): deja los básicos (`email`, `profile`, `openid`).
    - Guarda. En "Estado de publicación" pulsa **Publicar aplicación** para que cualquiera pueda entrar (si lo dejas en "Prueba", solo entran los correos que añadas a mano, máximo 100).
 3. **APIs y servicios** > **Credenciales** > **Crear credenciales** > **ID de cliente de OAuth**:
@@ -61,8 +61,8 @@ Abre `index.html` y, al principio del archivo, rellena el bloque `CAMINO_CONFIG`
 window.CAMINO_CONFIG = {
   supabaseUrl: "https://TU-PROYECTO.supabase.co",
   supabaseAnonKey: "eyJ...",
-  contactEmail: "hola@blablahelp.es",   // aparece en legal, reportes y contacto
-  siteName: "BlaBlaHelp",
+  contactEmail: "tehagohueco.contacto@gmail.com",   // aparece en legal, reportes y contacto
+  siteName: "Te Hago Hueco",
   ownerName: "Nicolás Renedo de la Lastra", // titular en el aviso legal (obligatorio por LSSI)
 };
 ```
@@ -80,7 +80,7 @@ Cualquier alojamiento de archivos estáticos sirve. Dos opciones sin coste:
 
 **Opción B: Cloudflare Pages o Vercel**: mismo flujo, subes la carpeta y te dan una URL con HTTPS.
 
-**Dominio propio (recomendable para la confianza de la gente)**: compra `blablahelp.es` o similar (unos 10 €/año en cualquier registrador) y sigue las instrucciones del alojamiento para apuntar el DNS. Recuerda actualizar luego la Site URL en Supabase y los orígenes autorizados en Google Cloud con el dominio definitivo.
+**Dominio propio (recomendable para la confianza de la gente)**: compra `tehagohueco.es` o similar (unos 10 €/año en cualquier registrador) y sigue las instrucciones del alojamiento para apuntar el DNS. Recuerda actualizar luego la Site URL en Supabase y los orígenes autorizados en Google Cloud con el dominio definitivo.
 
 Para probar en local antes de publicar: `python3 -m http.server 8080` dentro de la carpeta y abre `http://localhost:8080`. No abras el archivo con doble clic (`file://`), porque el inicio de sesión con Google no funciona así.
 
@@ -109,7 +109,7 @@ No soy abogado y esto no sustituye una revisión profesional, pero estos son los
 - **RGPD / LOPDGDD**: la política de privacidad describe datos, finalidades, base jurídica, encargados (Supabase en la UE, Google), conservación y derechos. Tratas pocos datos y con minimización real (no hay teléfonos; el correo no se muestra). Como persona física sin actividad económica no necesitas DPO ni registro ante la AEPD, pero sí debes atender los derechos que te pidan por correo. Si en algún momento usaras analítica (Google Analytics, etc.) tendrías que añadir banner de cookies; ahora mismo no hace falta.
 - **Responsabilidad**: las condiciones dejan claro que eres un mero intermediario técnico sin participación en el acuerdo, sin verificación de conductores y sin gestión de pagos, y cada conductor acepta tres compromisos explícitos al publicar. Esto es lo habitual en este tipo de plataformas y te protege razonablemente, pero no es una inmunidad absoluta: si recibes un reporte de conducta peligrosa y no actúas, ahí sí podrías tener un problema. Atiende los reportes.
 - **Transporte**: compartir gastos reales sin beneficio es legal en España y no requiere autorización de transporte. La web no fija ni cobra precios: cada viaje es gratis o a pachas, y el reparto de gastos se acuerda entre los viajeros en el grupo privado. La base de datos impide guardar cualquier importe.
-- **Nombre y marca**: comprueba que el nombre que elijas no esté registrado (https://www.oepm.es). "BlaBlaHelp" es una propuesta; es trivial cambiarlo en `siteName` y en el `<title>`.
+- **Nombre y marca**: comprueba que el nombre que elijas no esté registrado (https://www.oepm.es). "Te Hago Hueco" es una propuesta; es trivial cambiarlo en `siteName` y en el `<title>`.
 
 ## 8. Mejoras posibles para una segunda versión
 

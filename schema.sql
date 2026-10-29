@@ -1,5 +1,5 @@
 -- ============================================================
--- BlaBlaHelp · Esquema de base de datos para Supabase
+-- Te Hago Hueco · Esquema de base de datos para Supabase
 -- Ejecutar completo en: Supabase > SQL Editor > New query > Run
 -- Es idempotente: puede volver a ejecutarse sin romper nada.
 -- ============================================================
