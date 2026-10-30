@@ -36,6 +36,8 @@ window.CAMINO_CONFIG = {
   supabaseUrl: "https://dbmqyczwjuahlydbfgtm.supabase.co",
   supabaseAnonKey: "sb_publishable_IBV9ny5inC9MFPl5kJE1mw_Ql3Epku3",
   contactEmail: "tehagohueco.contacto@gmail.com",
+  // Clave gratuita de CARTO Basemaps (carto.com/basemaps/apikey). Sin ella se usa el mapa de OpenStreetMap.
+  cartoKey: "",
   siteName: "Te Hago Hueco",
   ownerName: "Nicolás Renedo de la Lastra",
 };
@@ -107,14 +109,28 @@ nav.main a.active{color:var(--ink);background:var(--surface)}
 .auth-area{display:flex;align-items:center;gap:10px}
 .avatar{width:36px;height:36px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-weight:600;font-size:.85rem;overflow:hidden;flex:none}
 .avatar img{width:100%;height:100%;object-fit:cover}
-.menu-btn{display:none;margin-left:auto;background:none;border:0;padding:8px;cursor:pointer;color:var(--ink)}
-body.home header.top{display:none}
+/* En la portada la barra aparece al dejar atrás el héroe, que ya lleva su propia navegación */
+body.home header.top{position:fixed;left:0;right:0;transform:translateY(-100%);visibility:hidden;transition:transform 260ms var(--ease-out),visibility 0s linear 260ms}
+body.home.past-hero header.top{transform:none;visibility:visible;transition:transform 260ms var(--ease-out)}
+#buscar{scroll-margin-top:68px}
+.results-head{scroll-margin-top:84px}
+.tabbar{display:none}
 @media (max-width:760px){
-  nav.main{display:none;position:absolute;top:68px;left:0;right:0;background:var(--bg);flex-direction:column;padding:8px var(--m) 20px;gap:0}
-  nav.main.open{display:flex}
-  nav.main a{padding:14px 12px;font-size:var(--step-lead)}
-  .menu-btn{display:inline-flex}
+  header.top .row{min-height:58px}
+  nav.main{display:none}
+  .auth-area{margin-left:auto}
   .auth-area .name{display:none}
+  #buscar{scroll-margin-top:58px}
+  .results-head{scroll-margin-top:70px}
+  body .hero{min-height:calc(100svh - 64px - env(safe-area-inset-bottom))}
+  /* Barra de secciones fija abajo en el móvil */
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--ink);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;padding:4px 2px;border-radius:14px;text-decoration:none;color:#b7aea5;font-size:11px;font-weight:600;line-height:1.1;text-align:center;-webkit-tap-highlight-color:transparent;transition:color 160ms,transform 160ms var(--ease-out)}
+  .tabbar a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar a.active{color:var(--accent)}
+  .tabbar a:active{transform:scale(.94)}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .toast-wrap{bottom:calc(82px + env(safe-area-inset-bottom)) !important}
 }
 
 /* ---------- Héroe (inicio) ---------- */
@@ -193,6 +209,7 @@ body.home header.top{display:none}
 .seg button{border:0;background:transparent;padding:8px 18px;border-radius:999px;cursor:pointer;font-weight:500;color:var(--muted);transition:transform 160ms var(--ease-out)}
 .seg button:active{transform:scale(.96)}
 .seg button.active{background:var(--ink);color:var(--bg)}
+.more-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:24px}
 .trips{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:clamp(10px,1.4vw,20px)}
 .trip{background:var(--surface);padding:clamp(18px,2vw,26px);display:flex;flex-direction:column;gap:14px;text-decoration:none;transition:transform 180ms var(--ease-out),background 180ms var(--ease);position:relative}
 .trip:active{transform:scale(.985)}
@@ -464,13 +481,14 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .modal{background:var(--bg);max-width:460px;width:100%;padding:32px;box-shadow:0 30px 60px -20px rgba(0,0,0,.45);/* taste-skill-ignore: dialog */animation:pop 220ms var(--ease-out)}
 .modal h3{font-size:var(--step-head);font-size:clamp(1.6rem,1.3rem + 1vw,2.2rem);letter-spacing:-.03em;margin-bottom:.4em}
 @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.tiles-muted{filter:grayscale(1) sepia(.12) brightness(1.04) contrast(.92)}
 .toast-wrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:grid;gap:8px;z-index:200;width:min(92vw,440px)}
 .toast{background:var(--ink);color:var(--bg);padding:14px 18px;font-size:var(--step-body);box-shadow:0 12px 30px -12px rgba(0,0,0,.4);/* taste-skill-ignore: toast */animation:up 220ms var(--ease-out)}
 .toast.err{background:var(--danger);color:#fff}
 .toast.ok{background:var(--ok);color:#fff}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .demo-badge{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;background:var(--accent);color:var(--accent-ink);padding:7px 14px;font-size:var(--step-small);font-weight:600}
-@media (max-width:760px){.demo-badge{left:auto;right:12px;top:auto;bottom:12px;transform:none}}
+@media (max-width:760px){.demo-badge{left:auto;right:12px;top:auto;bottom:calc(82px + env(safe-area-inset-bottom));transform:none}}
 </style>
 </head>
 <body>
@@ -478,11 +496,8 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 <header class="top">
   <div class="wrap row">
     <a class="brand" href="#/">Te Hago <b>Hueco</b></a>
-    <button class="menu-btn" id="menuBtn" aria-label="Menú" aria-expanded="false">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
-    <nav class="main" id="nav">
-      <a href="#/" data-nav="home">Buscar viaje</a>
+    <nav class="main" id="nav" aria-label="Secciones">
+      <a href="#/buscar" data-nav="home">Buscar viaje</a>
       <a href="#/publicar" data-nav="publicar">Publicar plazas</a>
       <a href="#/mis-viajes" data-nav="mis-viajes">Mis viajes</a>
       <a href="#/transporte" data-nav="transporte">Pide transporte</a>
@@ -491,6 +506,14 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
     <div class="auth-area" id="authArea"></div>
   </div>
 </header>
+
+<nav class="tabbar" aria-label="Secciones">
+  <a href="#/buscar" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span>Buscar</span></a>
+  <a href="#/publicar" data-nav="publicar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg><span>Publicar</span></a>
+  <a href="#/mis-viajes" data-nav="mis-viajes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h16v9H4z"/><path d="M8 8.5V6h8v2.5M4 13h16"/></svg><span>Mis viajes</span></a>
+  <a href="#/transporte" data-nav="transporte"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V5h11l-1.5 3.5L16 12H5"/></svg><span>Transporte</span></a>
+  <a href="#/como-funciona" data-nav="como-funciona"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/></svg><span>Cómo funciona</span></a>
+</nav>
 
 <main id="app"></main>
 
@@ -617,6 +640,17 @@ function searchPlaces(q, limit=8){
   }
   out.sort((a,b) => a[0]-b[0] || a[1]-b[1]);
   return out.slice(0, limit).map(x => x[2]);
+}
+function addBaseTiles(map){
+  const key = (CFG.cartoKey || "").trim();
+  const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  if(key){
+    const k = encodeURIComponent(key);
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png?key=${k}`, { attribution: osm + ' &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains:"abcd", maxZoom:18 }).addTo(map);
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}{r}.png?key=${k}`, { subdomains:"abcd", maxZoom:18, pane:"shadowPane" }).addTo(map);
+  } else {
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: osm, maxZoom:18, className:"tiles-muted" }).addTo(map);
+  }
 }
 let leafletPromise = null;
 function loadLeaflet(){
@@ -1082,9 +1116,13 @@ function requireLogin(reason){
 const app = $("#app");
 let cleanup = null;
 function setNav(key){
-  document.querySelectorAll("nav.main a").forEach(a => a.classList.toggle("active", a.dataset.nav === key));
-  $("#nav").classList.remove("open");
+  document.querySelectorAll("nav.main a, .tabbar a").forEach(a => {
+    const on = a.dataset.nav === key;
+    a.classList.toggle("active", on);
+    if(on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
 }
+let heroObs = null;
 let firstRoute = true, lastRouteHash = "#/", pendingAnchor = null;
 async function route(){
   const raw = location.hash;
@@ -1104,9 +1142,11 @@ async function route(){
   const [path, qs] = hash.split("?");
   const params = Object.fromEntries(new URLSearchParams(qs||""));
   window.scrollTo({ top:0, behavior:"instant" });
-  document.body.classList.remove("home");
+  if(heroObs){ heroObs.disconnect(); heroObs = null; }
+  document.body.classList.remove("home", "past-hero");
   lastRouteHash = location.hash || "#/";
-  if(path === "/"){ await viewHome(params); if(pendingAnchor){ const el = document.getElementById(pendingAnchor); pendingAnchor = null; if(el) setTimeout(() => el.scrollIntoView({ behavior:"smooth", block:"start" }), 60); } return; }
+  if(path === "/buscar"){ pendingAnchor = "buscar"; history.replaceState(null, "", "#/"); lastRouteHash = "#/"; }
+  if(path === "/" || path === "/buscar"){ await viewHome(params); if(pendingAnchor){ const el = document.getElementById(pendingAnchor); pendingAnchor = null; if(el) setTimeout(() => el.scrollIntoView({ behavior:"smooth", block:"start" }), 60); } return; }
   if(path === "/transporte") return viewTransport(params);
   if(path === "/publicar") return viewPublish();
   if(path.startsWith("/viaje/")) return viewTrip(path.split("/")[2]);
@@ -1169,7 +1209,7 @@ function viewHome(p){
   <section class="hero" aria-label="Inicio">
     <div class="topline">
       <span class="mono">Te Hago Hueco</span>
-      <nav aria-label="Principal"><a href="#buscar">Buscar viaje</a><a href="#/publicar" class="hide-m">Publicar plazas</a><a href="#/transporte" class="hide-m">Pide transporte</a><a href="#/como-funciona" class="hide-m">Cómo funciona</a>${authLink}</nav>
+      <nav aria-label="Principal"><a href="#/buscar" class="hide-m">Buscar viaje</a><a href="#/publicar" class="hide-m">Publicar plazas</a><a href="#/mis-viajes" class="hide-m">Mis viajes</a><a href="#/transporte" class="hide-m">Pide transporte</a><a href="#/como-funciona" class="hide-m">Cómo funciona</a>${authLink}</nav>
     </div>
     <h1 aria-label="Te hago hueco"><span class="line"><span>Te hago</span></span><span class="line"><span>hueco.</span></span></h1>
     <div class="foot">
@@ -1277,12 +1317,17 @@ function viewHome(p){
   <section class="cta" aria-labelledby="ctaTitle">
     <h2 id="ctaTitle" class="reveal">¿Conduces</h2>
     <div class="mid">
-      <div class="choice reveal" data-d="1"><a class="btn accent" href="#/publicar">Publicar plazas</a><span class="or">o</span><a class="btn secondary" href="#buscar" style="color:var(--bg)">Buscar viaje</a></div>
+      <div class="choice reveal" data-d="1"><a class="btn accent" href="#/publicar">Publicar plazas</a><span class="or">o</span><a class="btn secondary" href="#/buscar" style="color:var(--bg)">Buscar viaje</a></div>
       <p class="after reveal" data-d="2">En los dos casos entras con Google y hablas con el resto en el grupo privado del viaje.</p>
     </div>
     <h2 class="reveal" aria-hidden="true">o viajas?</h2>
   </section>`;
 
+  if(heroObs) heroObs.disconnect();
+  if("IntersectionObserver" in window){
+    heroObs = new IntersectionObserver(([e]) => document.body.classList.toggle("past-hero", !e.isIntersecting));
+    heroObs.observe($(".hero .topline"));
+  } else document.body.classList.add("past-hero");
   if($("#heroLogin")) $("#heroLogin").onclick = e => { e.preventDefault(); api.signIn(); };
   if($("#heroLogout")) $("#heroLogout").onclick = e => { e.preventDefault(); api.signOut(); };
   const gratis = () => $("#chipGratis").getAttribute("aria-pressed")==="true";
@@ -1335,7 +1380,20 @@ function viewHome(p){
     mode = b.dataset.mode; $("#results").classList.toggle("hidden", mode==="map"); $("#map").classList.toggle("hidden", mode!=="map");
     if(mode==="map") drawMap(lastResults);
   });
-  let lastResults = [];
+  let lastResults = [], shown = 0;
+  const pageSize = () => window.innerWidth < 760 ? 5 : 8;
+  function listHtml(rows){
+    const rest = rows.length - shown;
+    return `<div class="trips">${rows.slice(0, shown).map((t,i)=>tripCard(t,i)).join("")}</div>` + (rest > 0
+      ? `<div class="more-row"><button type="button" class="btn secondary" id="moreBtn">Ver ${Math.min(rest, 12)} viajes más</button><span class="small muted">Mostrando ${shown} de ${rows.length}</span></div>` : "");
+  }
+  $("#results").addEventListener("click", e => {
+    if(!e.target.closest("#moreBtn")) return;
+    const from = shown; shown += 12;
+    $("#results").innerHTML = listHtml(lastResults);
+    watchReveals();
+    $("#results").querySelectorAll(".trip")[from]?.focus({ preventScroll:true });
+  });
   async function loadResults(){
     if($("#fo")?.value.trim() || $("#fd")?.value.trim()) await loadPlaces().catch(() => {});
     const po = readPlace("fo"), pd = readPlace("fd");
@@ -1350,7 +1408,8 @@ function viewHome(p){
     if(f.gratis) parts.push("gratis");
     $("#resTitle").innerHTML = (parts.length ? `Viajes ${parts.join(" ")}` : "Próximos viajes") + ` <span class="count">${rows.length}</span>`;
     $("#results").style.opacity = "";
-    $("#results").innerHTML = rows.length ? `<div class="trips">${rows.map((t,i)=>tripCard(t,i)).join("")}</div>`
+    shown = pageSize();
+    $("#results").innerHTML = rows.length ? listHtml(rows)
       : `<div class="empty"><h3>Todavía no hay viajes con esos criterios</h3><p>Prueba sin fecha o con una localidad cercana. Si vas a hacer tú ese trayecto, <a href="#/publicar">publícalo</a>: alguien lo está buscando.</p>${f.origin && f.dest ? `<p style="margin-top:18px"><a class="btn accent" href="#/transporte?o=${encodeURIComponent(f.origin)}&d=${encodeURIComponent(f.dest)}">Necesito este trayecto: firmar ${esc(f.origin)} → ${esc(f.dest)}</a></p>` : `<p><a href="#/transporte">Firma el trayecto que necesitas</a> para que se vea la falta de transporte.</p>`}</div>`;
     watchReveals();
     if(mode==="map") drawMap(rows);
@@ -1359,8 +1418,7 @@ function viewHome(p){
     if(!window.L){ loadLeaflet().then(() => { if(mode==="map") drawMap(lastResults); }).catch(() => toast("No se pudo cargar el mapa", "err")); return; }
     if(!mapInst || !document.body.contains(mapInst.getContainer())){
       mapInst = L.map("map", { scrollWheelZoom:false }).setView([38.6, -4.3], 6);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", { attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>', maxZoom:18 }).addTo(mapInst);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", { maxZoom:18, pane:"shadowPane" }).addTo(mapInst);
+      addBaseTiles(mapInst);
     }
     mapInst.eachLayer(l => { if(!(l instanceof L.TileLayer)) mapInst.removeLayer(l); });
     setTimeout(() => mapInst.invalidateSize(), 50);
@@ -1958,7 +2016,7 @@ function viewLegal(which){
         <li><strong>Supabase</strong> (base de datos, autenticación y mensajería), con servidores en la Unión Europea (Irlanda), como encargado del tratamiento.</li>
         <li><strong>Vercel</strong> (alojamiento de la web), que registra datos técnicos de acceso como la dirección IP. Vercel es una empresa de Estados Unidos; las transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU. y en cláusulas contractuales tipo.</li>
         <li><strong>Google</strong>, para el inicio de sesión, conforme a su propia política de privacidad.</li>
-        <li>Para mostrar la web, tu navegador descarga recursos de terceros, que reciben tu dirección IP: la tipografía, de <strong>Fontshare</strong> (Indian Type Foundry); las librerías de mapa y conexión, de <strong>unpkg</strong> y <strong>jsDelivr</strong>; y los mapas, de <strong>CARTO</strong> con datos de <strong>OpenStreetMap</strong>.</li>
+        <li>Para mostrar la web, tu navegador descarga recursos de terceros, que reciben tu dirección IP: la tipografía, de <strong>Fontshare</strong> (Indian Type Foundry); las librerías de mapa y conexión, de <strong>jsDelivr</strong>; y, solo si abres el mapa, las imágenes del mapa, de <strong>CARTO</strong> o de los servidores de <strong>OpenStreetMap</strong>.</li>
       </ul>
       <h2>Conservación</h2>
       <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
@@ -1998,8 +2056,13 @@ function viewLegal(which){
 }
 
 /* ---------------- Arranque ---------------- */
-$("#menuBtn").onclick = () => { const n = $("#nav"); n.classList.toggle("open"); $("#menuBtn").setAttribute("aria-expanded", n.classList.contains("open")); };
-document.addEventListener("click", e => { if(e.target.closest("nav.main a")) $("#nav").classList.remove("open"); });
+/* "Buscar viaje" desde la portada: baja al buscador sin recargar la vista */
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href="#/buscar"]');
+  if(!a || !document.body.classList.contains("home") || !$("#buscar")) return;
+  e.preventDefault();
+  $("#buscar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start" });
+});
 if(DEMO){
   const b = document.createElement("div"); b.className = "demo-badge"; b.textContent = "Modo demostración · datos de ejemplo"; document.body.appendChild(b);
 }

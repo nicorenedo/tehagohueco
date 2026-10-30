@@ -6,6 +6,8 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - `og.png`: imagen de vista previa para redes (1200×630). Se regenera con la plantilla de diseño fuera del repositorio si cambia el nombre o el lema.
 - `index.html`: toda la aplicación (HTML, CSS y JS, sin build). Configuración en `window.CAMINO_CONFIG` al principio del archivo. Sin `supabaseUrl` y `supabaseAnonKey` funciona en modo demostración.
 - `api/publico.js`: función de Vercel que sirve viajes próximos y `demand_stats` con caché de CDN (15 s, 2 min stale). La portada lee de aquí; tras cualquier cambio del usuario el cliente consulta Supabase directamente 90 s (`touchPublic`). Leaflet y `municipios.json` se cargan solo cuando hacen falta; realtime solo con sesión iniciada.
+- Mapa: con `cartoKey` en `CAMINO_CONFIG` usa CARTO (exige clave gratuita desde agosto de 2026); sin clave, OpenStreetMap en gris.
+- Navegación: barra superior siempre visible (en la portada aparece al pasar el héroe) y barra inferior fija en móvil. `#/buscar` lleva al buscador.
 - `schema.sql`: Postgres para Supabase (tablas, RLS, RPC `join_trip`/`leave_trip`/`delete_own_account`, realtime). Idempotente.
 - `SETUP.md`: guía de despliegue paso a paso (Supabase, Google OAuth, hosting, dominio, legal).
 - `.taste-skill/`: archivos de trabajo del proceso de diseño. No desplegar.
