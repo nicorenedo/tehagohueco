@@ -136,7 +136,9 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 /* ---------- Héroe (inicio) ---------- */
 .hero{position:relative;min-height:100svh;background:var(--field);color:var(--field-ink);display:grid;grid-template-rows:auto 1fr auto;padding:24px var(--m) 40px}
 .hero .topline{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:var(--step-small);font-weight:500}
-.hero .topline .mono{font-weight:700;letter-spacing:-.02em;font-size:1rem}
+.hero .topline .mono{font-weight:700;letter-spacing:-.02em;font-size:1rem;display:inline-flex;align-items:center}
+.brand{display:inline-flex;align-items:center}
+.lazo{width:.86em;height:1.18em;margin-left:.45em;flex:none;fill:none;stroke:#0b0908;stroke-width:17;stroke-linejoin:round;overflow:visible}
 .hero .topline nav{display:flex;gap:clamp(12px,2vw,28px);align-items:center}
 .hero .topline nav a{color:var(--field-ink);text-decoration:none;opacity:.85}
 .hero .topline nav a.enter{text-decoration:underline;text-underline-offset:4px;opacity:1}
@@ -495,7 +497,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 
 <header class="top">
   <div class="wrap row">
-    <a class="brand" href="#/">Te Hago <b>Hueco</b></a>
+    <a class="brand" href="#/"><span>Te Hago <b>Hueco</b></span><svg class="lazo" viewBox="0 0 110 150" role="img" aria-label="Lazo negro por las víctimas de Urda"><title>En memoria de las víctimas de Urda</title><path d="M80 142 L42 80 C20 46 26 10 55 10 C84 10 90 46 68 80 L30 142"/></svg></a>
     <nav class="main" id="nav" aria-label="Secciones">
       <a href="#/buscar" data-nav="home">Buscar viaje</a>
       <a href="#/publicar" data-nav="publicar">Publicar plazas</a>
@@ -1208,7 +1210,7 @@ function viewHome(p){
   app.innerHTML = `
   <section class="hero" aria-label="Inicio">
     <div class="topline">
-      <span class="mono">Te Hago Hueco</span>
+      <span class="mono">Te Hago Hueco<svg class="lazo" viewBox="0 0 110 150" role="img" aria-label="Lazo negro por las víctimas de Urda"><title>En memoria de las víctimas de Urda</title><path d="M80 142 L42 80 C20 46 26 10 55 10 C84 10 90 46 68 80 L30 142"/></svg></span>
       <nav aria-label="Principal"><a href="#/buscar" class="hide-m">Buscar viaje</a><a href="#/publicar" class="hide-m">Publicar plazas</a><a href="#/mis-viajes" class="hide-m">Mis viajes</a><a href="#/transporte" class="hide-m">Pide transporte</a><a href="#/como-funciona" class="hide-m">Cómo funciona</a>${authLink}</nav>
     </div>
     <h1 aria-label="Te hago hueco"><span class="line"><span>Te hago</span></span><span class="line"><span>hueco.</span></span></h1>
