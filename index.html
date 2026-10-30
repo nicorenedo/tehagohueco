@@ -211,6 +211,18 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .seg button{border:0;background:transparent;padding:8px 18px;border-radius:999px;cursor:pointer;font-weight:500;color:var(--muted);transition:transform 160ms var(--ease-out)}
 .seg button:active{transform:scale(.96)}
 .seg button.active{background:var(--ink);color:var(--bg)}
+.nudge{display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap;background:var(--paper);border-radius:22px;padding:18px 20px 18px 22px;margin:0 0 28px;position:relative}
+.nudge > div{flex:1 1 320px;padding-right:28px}
+.nudge b{font-size:var(--step-lead);letter-spacing:-.01em}
+.nudge p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.nudge-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+@media (hover:hover){.nudge-x:hover{background:var(--surface);color:var(--ink)}}
+.wanted{margin-top:clamp(36px,5vw,56px);max-width:860px}
+.wanted.first{margin-top:8px}
+.wanted h3{margin:0 0 4px}
+.wanted ul{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.wanted li{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;background:var(--surface);border-radius:18px;padding:14px 16px 14px 18px}
+.wanted li > div{display:grid;gap:2px}
 .more-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:24px}
 .trips{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:clamp(10px,1.4vw,20px)}
 .trip{background:var(--surface);padding:clamp(18px,2vw,26px);display:flex;flex-direction:column;gap:14px;text-decoration:none;transition:transform 180ms var(--ease-out),background 180ms var(--ease);position:relative}
@@ -1156,7 +1168,7 @@ async function route(){
   if(path === "/buscar"){ pendingAnchor = "buscar"; history.replaceState(null, "", "#/"); lastRouteHash = "#/"; }
   if(path === "/" || path === "/buscar"){ await viewHome(params); if(pendingAnchor){ const el = document.getElementById(pendingAnchor); pendingAnchor = null; if(el) setTimeout(() => el.scrollIntoView({ behavior:"smooth", block:"start" }), 60); } return; }
   if(path === "/transporte") return viewTransport(params);
-  if(path === "/publicar") return viewPublish();
+  if(path === "/publicar") return viewPublish(null, params);
   if(path.startsWith("/viaje/")) return viewTrip(path.split("/")[2]);
   if(path.startsWith("/editar/")) return viewPublish(path.split("/")[2]);
   if(path === "/mis-viajes") return viewMine();
@@ -1255,6 +1267,7 @@ function viewHome(p){
     </div>
   </section>
   <section class="results" aria-labelledby="resTitle">
+    <div id="nudge"></div>
     <div class="results-head">
       <h2 id="resTitle">Próximos viajes</h2>
       <div class="seg" role="tablist"><button class="active" data-mode="list">Lista</button><button data-mode="map">Mapa</button></div>
@@ -1390,10 +1403,27 @@ function viewHome(p){
   });
   let lastResults = [], shown = 0;
   const pageSize = () => window.innerWidth < 760 ? 5 : 8;
+  let wantedHtml = "";
   function listHtml(rows){
     const rest = rows.length - shown;
     return `<div class="trips">${rows.slice(0, shown).map((t,i)=>tripCard(t,i)).join("")}</div>` + (rest > 0
-      ? `<div class="more-row"><button type="button" class="btn secondary" id="moreBtn">Ver ${Math.min(rest, 12)} viajes más</button><span class="small muted">Mostrando ${shown} de ${rows.length}</span></div>` : "");
+      ? `<div class="more-row"><button type="button" class="btn secondary" id="moreBtn">Ver ${Math.min(rest, 12)} viajes más</button><span class="small muted">Mostrando ${shown} de ${rows.length}</span></div>` : "") + wantedHtml;
+  }
+  /* Trayectos que la gente ha pedido (firmas), filtrados como la búsqueda, para que quien conduce vea la demanda */
+  async function wantedFor(f){
+    const st = await api.demandStats().catch(() => null);
+    const R = f.near ? 35 : 3;
+    const near = (name, q, qPt) => !q || name === q || (qPt && (p => p && haversine(p, qPt) <= R)(findPlace(name)));
+    const all = (st && st.routes || []).filter(r => near(r.origin_city, f.origin, f.originPt) && near(r.dest_city, f.dest, f.destPt));
+    const routes = all.slice(0, window.innerWidth < 760 ? 3 : 6);
+    if(!routes.length) return "";
+    const lbl = r => [r.diario?`${r.diario} a diario`:"", r.semanal?`${r.semanal} cada semana`:"", r.puntual?`${r.puntual} una vez`:""].filter(Boolean).join(" · ");
+    return `<div class="wanted">
+      <h3>Gente que busca hueco</h3>
+      <p class="small muted">Personas que han pedido estos trayectos y no encuentran cómo viajar. Si vas a hacer alguno, publícalo y lo verán.</p>
+      <ul>${routes.map(r => `<li><div><b>${esc(r.origin_city)} → ${esc(r.dest_city)}</b><span class="small muted">${r.total === 1 ? "1 persona" : `${r.total} personas`}${lbl(r) ? " · " + lbl(r) : ""}</span></div><a class="btn secondary sm" href="#/publicar?o=${encodeURIComponent(r.origin_city)}&d=${encodeURIComponent(r.dest_city)}">Publicar este trayecto</a></li>`).join("")}</ul>
+      ${all.length > routes.length ? `<p style="margin:14px 0 0"><a href="#/transporte">Ver los ${all.length} trayectos pedidos</a></p>` : ""}
+    </div>`;
   }
   $("#results").addEventListener("click", e => {
     if(!e.target.closest("#moreBtn")) return;
@@ -1417,8 +1447,9 @@ function viewHome(p){
     $("#resTitle").innerHTML = (parts.length ? `Viajes ${parts.join(" ")}` : "Próximos viajes") + ` <span class="count">${rows.length}</span>`;
     $("#results").style.opacity = "";
     shown = pageSize();
+    wantedHtml = await wantedFor(f);
     $("#results").innerHTML = rows.length ? listHtml(rows)
-      : `<div class="empty"><h3>Todavía no hay viajes con esos criterios</h3><p>Prueba sin fecha o con una localidad cercana. Si vas a hacer tú ese trayecto, <a href="#/publicar">publícalo</a>: alguien lo está buscando.</p>${f.origin && f.dest ? `<p style="margin-top:18px"><a class="btn accent" href="#/transporte?o=${encodeURIComponent(f.origin)}&d=${encodeURIComponent(f.dest)}">Necesito este trayecto: firmar ${esc(f.origin)} → ${esc(f.dest)}</a></p>` : `<p><a href="#/transporte">Firma el trayecto que necesitas</a> para que se vea la falta de transporte.</p>`}</div>`;
+      : wantedHtml.replace('<div class="wanted">','<div class="wanted first">') + `<div class="empty"><h3>Todavía no hay viajes con esos criterios</h3><p>Prueba sin fecha o con una localidad cercana. Si vas a hacer tú ese trayecto, <a href="#/publicar">publícalo</a>: alguien lo está buscando.</p>${f.origin && f.dest ? `<p style="margin-top:18px"><a class="btn accent" href="#/transporte?o=${encodeURIComponent(f.origin)}&d=${encodeURIComponent(f.dest)}">Necesito este trayecto: firmar ${esc(f.origin)} → ${esc(f.dest)}</a></p>` : `<p><a href="#/transporte">Firma el trayecto que necesitas</a> para que se vea la falta de transporte.</p>`}</div>`;
     watchReveals();
     if(mode==="map") drawMap(rows);
   }
@@ -1450,8 +1481,21 @@ function viewHome(p){
       a.querySelector(".n").textContent = n === 0 ? "sin viajes aún" : n === 1 ? "1 viaje publicado" : `${n} viajes publicados`;
     });
   }
+  function showNudge(st){
+    let off = false; try{ off = sessionStorage.getItem("thh_nudge_off") === "1"; }catch(_){}
+    if(off || !$("#nudge")) return;
+    const n = st && st.people || 0;
+    $("#nudge").innerHTML = `<div class="nudge reveal in" role="note">
+      <div><b>¿Vas a hacer el trayecto estos días?</b>
+      <p>Si te sobra un hueco en el coche, publícalo. Son dos minutos y para quien no tiene cómo volver a casa puede ser mucho.${n ? ` Ahora mismo ${n === 1 ? "hay una persona pidiendo" : `hay ${n.toLocaleString("es-ES")} personas pidiendo`} trayecto.` : ""}</p></div>
+      <a class="btn accent sm" href="#/publicar">Publicar mi viaje</a>
+      <button type="button" class="nudge-x" aria-label="Cerrar aviso">${X_ICON}</button>
+    </div>`;
+    $("#nudge .nudge-x").onclick = () => { try{ sessionStorage.setItem("thh_nudge_off","1"); }catch(_){} $("#nudge").innerHTML = ""; };
+  }
   async function loadDemand(){
     const st = await api.demandStats();
+    showNudge(st);
     if(!$("#dmPeople")) return;
     $("#dmPeople").textContent = (st.people||0).toLocaleString("es-ES");
     $("#dmLabel").textContent = st.people === 1 ? "persona ha firmado" : "personas han firmado";
@@ -1470,10 +1514,25 @@ function viewHome(p){
 }
 
 /* ---------------- Vista: publicar y editar ---------------- */
-async function viewPublish(editId){
+const DRAFT_KEY = "thh_pending_trip";
+function readDraft(){ try{ return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||"null"); }catch(_){ return null; } }
+function clearDraft(){ try{ sessionStorage.removeItem(DRAFT_KEY); }catch(_){} }
+/* Al volver de Google con un viaje a medias, se publica solo (ya aceptó los compromisos y pulsó "Publicar") */
+async function resumePendingTrip(){
+  const d = readDraft(); if(!d || !d.data) return false;
+  if(Date.now() - (d.at || 0) > 30*60e3) return false;   // borrador antiguo: solo sirve para rellenar el formulario
+  if(new Date(d.data.departure_at).getTime() < Date.now() + 15*60e3){ history.replaceState(null, "", "#/publicar"); toast("Revisa la hora de salida y vuelve a pulsar Publicar", "err"); return true; }
+  try{
+    const row = await api.createTrip(Object.assign({ contribution_eur: 0 }, d.data));
+    clearDraft(); history.replaceState(null, "", "#/viaje/" + row.id);
+    toast("Viaje publicado. Gracias por hacer hueco.", "ok");
+  }catch(err){ console.error(err); history.replaceState(null, "", "#/publicar"); toast("No se pudo publicar: " + (err.message||err), "err"); }
+  return true;
+}
+async function viewPublish(editId, params = {}){
   setNav(editId ? null : "publicar");
   const editing = !!editId;
-  if(!me){
+  if(!me && editing){
     app.innerHTML = `<section class="page narrow"><div class="wrap">
       <h1>${editing ? "Editar viaje" : "Publica tus plazas libres"}</h1>
       <p class="lead muted">Para ${editing ? "editar" : "publicar"} un viaje necesitas identificarte. Es rápido: mostraremos tu nombre de pila, la inicial del apellido y tu foto de Google, nunca tu correo.</p>
@@ -1494,7 +1553,8 @@ async function viewPublish(editId){
   }
   const minDT = new Date(Date.now()+30*60e3); minDT.setSeconds(0,0);
   const toLocal = d => new Date(d.getTime()-d.getTimezoneOffset()*60e3).toISOString().slice(0,16);
-  const v = t || {};
+  const draft = !editing ? readDraft() : null;
+  const v = t || (draft && draft.data) || { origin_city: params.o || undefined, dest_city: params.d || undefined };
   const flexOpts = ["Salida puntual","Hora flexible ±30 min","Hora flexible ±1 h","Muy flexible, me adapto al grupo"];
   const flexSel = v.flexibility || "Hora flexible ±30 min";
   const mode = v.cost_mode || "compartir";
@@ -1507,6 +1567,7 @@ async function viewPublish(editId){
     <p class="lead muted">${editing
       ? (v.seats_taken ? `Hay ${v.seats_taken} ${v.seats_taken===1?"persona apuntada":"personas apuntadas"}. Les avisaremos en el grupo de lo que cambies.` : "Cambia lo que necesites. Nadie se ha apuntado todavía.")
       : "Cuéntanos lo esencial. El punto exacto de recogida lo acordaréis después en el grupo privado del viaje; aquí basta con una zona o referencia."}</p>
+    ${!editing && !me ? `<div class="notice" style="margin-bottom:16px">${ICON.info}<div>Puedes rellenarlo ya. Al final te pediremos entrar con Google, para que quien viaje contigo sepa quién eres. No mostramos tu correo ni pedimos tu teléfono.</div></div>` : ""}
     <form id="pubForm" class="panel box" novalidate>
       <fieldset>
         <legend>Trayecto</legend>
@@ -1547,7 +1608,7 @@ async function viewPublish(editId){
       <div id="formErr" class="notice danger hidden" style="margin-bottom:14px"></div>
       <div class="form-actions">
         ${editing ? `<a class="btn secondary" href="#/viaje/${v.id}">Descartar cambios</a>` : ""}
-        <button class="btn accent ${editing?"":"block"}" type="submit" id="pubSubmit">${editing ? "Guardar cambios" : "Publicar viaje"}</button>
+        <button class="btn accent ${editing?"":"block"}" type="submit" id="pubSubmit">${editing ? "Guardar cambios" : me ? "Publicar viaje" : `${ICON.google} Entrar con Google y publicar`}</button>
       </div>
     </form></div></section>`;
 
@@ -1559,6 +1620,11 @@ async function viewPublish(editId){
     document.querySelectorAll("#costModes .radio-card").forEach(l => l.classList.toggle("checked", l.querySelector("input").checked));
   }));
   f("pdesc").addEventListener("input", () => f("descCount").textContent = f("pdesc").value.length);
+  if(draft && draft.data){
+    ["c1","c2","c3"].forEach(id => { if(f(id)) f(id).checked = true; });
+    if(draft.data.origin_lat != null){ f("po").dataset.lat = draft.data.origin_lat; f("po").dataset.lng = draft.data.origin_lng; f("po").dataset.label = draft.data.origin_city; }
+    if(draft.data.dest_lat != null){ f("pd").dataset.lat = draft.data.dest_lat; f("pd").dataset.lng = draft.data.dest_lng; f("pd").dataset.label = draft.data.dest_city; }
+  }
 
   f("pubForm").onsubmit = async e => {
     e.preventDefault();
@@ -1583,6 +1649,11 @@ async function viewPublish(editId){
       cost_mode: document.querySelector("#costModes input:checked").value,
       distance_km: roadKmPts(po, pd), description: f("pdesc").value.trim()
     };
+    if(!me){
+      try{ sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ data, at: Date.now() })); }catch(_){}
+      requireLogin("Tu viaje está listo. Entra con Google y lo publicamos en cuanto vuelvas.");
+      return;
+    }
     f("pubSubmit").disabled = true;
     try{
       if(editing){
@@ -1591,7 +1662,8 @@ async function viewPublish(editId){
         location.hash = "#/viaje/" + v.id;
       } else {
         const row = await api.createTrip(Object.assign({ contribution_eur: 0 }, data));
-        toast("Viaje publicado. Gracias por compartir.", "ok");
+        clearDraft();
+        toast("Viaje publicado. Gracias por hacer hueco.", "ok");
         location.hash = "#/viaje/" + row.id;
       }
     }catch(err){ console.error(err); errBox.textContent = (editing ? "No se pudieron guardar los cambios: " : "No se pudo publicar el viaje: ") + (err.message||err); errBox.classList.remove("hidden"); f("pubSubmit").disabled = false; }
@@ -2081,6 +2153,7 @@ if(DEMO) (window.requestIdleCallback || (cb => setTimeout(cb, 1200)))(() => load
   renderAuth();
   let pending = null; try{ pending = sessionStorage.getItem("thh_pending_sign"); }catch(_){}
   if(me && pending){ await resumePendingSign(); if(!location.hash.startsWith("#/transporte")) history.replaceState(null, "", "#/transporte"); }
+  if(me && readDraft()) await resumePendingTrip();
   route();
 })();
 })();
