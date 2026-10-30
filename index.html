@@ -1137,7 +1137,7 @@ function setNav(key){
   });
 }
 let heroObs = null;
-let firstRoute = true, firstView = true, lastRouteHash = "#/", pendingAnchor = null;
+let firstRoute = true, lastRouteHash = "#/", pendingAnchor = null;
 async function route(){
   const raw = location.hash;
   if(raw && !raw.startsWith("#/")){
@@ -1159,12 +1159,8 @@ async function route(){
   if(heroObs){ heroObs.disconnect(); heroObs = null; }
   document.body.classList.remove("home", "past-hero");
   lastRouteHash = location.hash || "#/";
-  /* Estadísticas: la primera visita la cuenta el script de Vercel; aquí contamos los cambios de sección */
-  if(!firstView && window.va){
-    const sec = path.startsWith("/viaje/") ? "/viaje" : path.startsWith("/editar/") ? "/editar" : (path === "/buscar" ? "/" : path);
-    try{ window.va("pageview", { route: sec, path: sec }); }catch(_){}
-  }
-  firstView = false;
+  /* Estadísticas: solo se cuenta la entrada (lo hace el script de Vercel). No contamos cambios de sección
+     para no gastar peticiones del plan gratuito durante los picos. */
   if(path === "/buscar"){ pendingAnchor = "buscar"; history.replaceState(null, "", "#/"); lastRouteHash = "#/"; }
   if(path === "/" || path === "/buscar"){ await viewHome(params); if(pendingAnchor){ const el = document.getElementById(pendingAnchor); pendingAnchor = null; if(el) setTimeout(() => el.scrollIntoView({ behavior:"smooth", block:"start" }), 60); } return; }
   if(path === "/transporte") return viewTransport(params);
