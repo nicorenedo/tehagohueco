@@ -223,6 +223,8 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .wanted ul{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
 .wanted li{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;background:var(--surface);border-radius:18px;padding:14px 16px 14px 18px}
 .wanted li > div{display:grid;gap:2px}
+#repForm .field{margin-bottom:14px}
+.linklike{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .more-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:24px}
 .trips{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:clamp(10px,1.4vw,20px)}
 .trip{background:var(--surface);padding:clamp(18px,2vw,26px);display:flex;flex-direction:column;gap:14px;text-decoration:none;transition:transform 180ms var(--ease-out),background 180ms var(--ease);position:relative}
@@ -841,7 +843,10 @@ const confirmDeadline = t => new Date(new Date(t.departure_at).getTime() - CONFI
 
 /* Datos públicos (viajes y firmas): una sola petición cacheada en la CDN (/api/publico).
    Tras cualquier cambio del propio usuario se consulta Supabase directamente durante un rato. */
-const PUB_TTL = 20e3, TRIP_SEL = "*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)";
+const PUB_TTL = 20e3;
+/* Lo que ve cualquiera sin cuenta. Nombre, foto, zonas, paradas, vehículo y descripción solo con sesión
+   (también restringido en la base de datos, por columnas). */
+const PUBLIC_COLS = "id,origin_city,dest_city,departure_at,flexibility,seats_total,seats_taken,cost_mode,contribution_eur,distance_km,status,created_at,origin_lat,origin_lng,dest_lat,dest_lng";
 let pubData = null, pubAt = 0, pubPromise = null, freshUntil = 0;
 function touchPublic(){ freshUntil = Date.now() + 90e3; pubData = null; pubPromise = null; }
 async function fetchPublic(){
@@ -853,7 +858,7 @@ async function fetchPublic(){
   }
   const since = new Date(Date.now()-2*3600e3).toISOString();
   const [tr, dm] = await Promise.all([
-    sb.from("trips").select(TRIP_SEL).gte("departure_at", since).neq("status","cancelado").order("departure_at", { ascending:true }).limit(1000),
+    sb.from("trips").select(PUBLIC_COLS).gte("departure_at", since).neq("status","cancelado").order("departure_at", { ascending:true }).limit(1000),
     sb.rpc("demand_stats")
   ]);
   if(tr.error) throw tr.error;
@@ -943,7 +948,7 @@ const api = {
   },
   async getTrip(id){
     if(DEMO) return demoState.trips.find(t => t.id === id) || null;
-    const { data } = await sb.from("trips").select("*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)").eq("id", id).maybeSingle();
+    const { data } = await sb.from("trips").select(me ? "*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)" : PUBLIC_COLS).eq("id", id).maybeSingle();
     return data;
   },
   async createTrip(t){
@@ -1091,6 +1096,11 @@ const api = {
     ]);
     return { driving: a.data||[], riding: (b.data||[]).filter(r=>r.trip).map(r=>Object.assign({}, r.trip, { my_confirmed_at: r.confirmed_at })).sort((x,y)=>new Date(x.departure_at)-new Date(y.departure_at)) };
   },
+  async report(r){
+    if(DEMO){ return; }
+    const { error } = await sb.from("reports").insert(r);
+    if(error) throw error;
+  },
   async deleteAccount(){
     if(DEMO){ await api.signOut(); return; }
     const { error } = await sb.rpc("delete_own_account");
@@ -1203,7 +1213,7 @@ function tripCard(t, i=0){
       <span><b>${costShort(t)}</b></span>
     </div>
     <div class="foot">
-      <div class="driver"><div class="avatar">${t.driver?.avatar_url?`<img src="${esc(t.driver.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(t.driver?.display_name)}</div>${esc(t.driver?.display_name||"Conductor")}</div>
+      ${t.driver ? `<div class="driver"><div class="avatar">${t.driver.avatar_url?`<img src="${esc(t.driver.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(t.driver.display_name)}</div>${esc(t.driver.display_name||"Conductor")}</div>` : `<span class="small muted">${t.flexibility ? esc(t.flexibility) : ""}</span>`}
       <span class="small muted">${t.distance_km?t.distance_km+" km":""}</span>
     </div>
   </a>`;
@@ -1758,17 +1768,17 @@ async function viewTrip(id){
             <dl class="kv">
               <dt>Salida</dt><dd>${(d=>d[0].toUpperCase()+d.slice(1))(fmtDateLong(t.departure_at))}, ${fmtTime(t.departure_at)}</dd>
               <dt>Horario</dt><dd>${esc(t.flexibility||"Sin especificar")}</dd>
-              <dt>Paradas</dt><dd>${esc(t.stops||"No indicadas")}</dd>
+              ${me ? `<dt>Paradas</dt><dd>${esc(t.stops||"No indicadas")}</dd>` : ""}
               <dt>Distancia</dt><dd>${t.distance_km?t.distance_km+" km aprox.":"Sin estimar"}</dd>
               <dt>Gastos</dt><dd>${esc(costLabel(t))}</dd>
               ${t.vehicle?`<dt>Vehículo</dt><dd>${esc(t.vehicle)}</dd>`:""}
             </dl>
-            <h3 style="margin-top:22px">Sobre el viaje</h3>
+            ${me ? `<h3 style="margin-top:22px">Sobre el viaje</h3>
             <p style="white-space:pre-wrap">${esc(t.description)}</p>
             <div class="driver" style="display:flex;align-items:center;gap:10px;padding-top:18px;margin-top:8px">
               <div class="avatar">${t.driver?.avatar_url?`<img src="${esc(t.driver.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(t.driver?.display_name)}</div>
               <div><div style="font-weight:600">${esc(t.driver?.display_name||"Conductor")}</div><div class="small muted">Conduce este viaje · cuenta verificada con Google</div></div>
-            </div>
+            </div>` : `<div class="locked" style="margin-top:22px">${ICON.lock}<div><b>Quién conduce y los detalles, con cuenta</b><br><span class="small">El nombre, la foto, la zona de salida y llegada y la descripción solo los ven las personas registradas. Así protegemos a quien publica su viaje.</span><br><button class="btn sm" id="anonLogin" style="margin-top:12px">${ICON.google} Entrar con Google</button></div></div>`}
           </div>
           <div class="panel box">${action}</div>
           <div class="panel box tips">
@@ -1779,7 +1789,7 @@ async function viewTrip(id){
               <li>Comparte con alguien de confianza la matrícula, la hora de salida y la de llegada prevista.</li>
               <li>Si algo no te cuadra el día del viaje, no subas. Pulsa "Ya no viajo" y busca otro.</li>
             </ul>
-            <p class="small muted" style="margin:0">${esc(CFG.siteName)} no verifica vehículos ni conductores y no participa en el acuerdo entre viajeros. <a href="mailto:${esc(CFG.contactEmail)}?subject=Reporte viaje ${t.id}">Reportar este viaje</a>.</p>
+            <p class="small muted" style="margin:0">${esc(CFG.siteName)} no verifica vehículos ni conductores y no participa en el acuerdo entre viajeros. Si ves algo raro, <button type="button" class="linklike" id="reportBtn">repórtalo</button> y lo revisamos.</p>
           </div>
         </div>
         <div>
@@ -1796,6 +1806,40 @@ async function viewTrip(id){
         </div>
       </div></div></section>`;
 
+    if($("#anonLogin")) $("#anonLogin").onclick = () => api.signIn();
+    if($("#reportBtn")) $("#reportBtn").onclick = () => {
+      if(!me){ requireLogin(`Para reportar necesitamos saber quién eres, así evitamos avisos falsos. Si lo prefieres, escríbenos a ${CFG.contactEmail}.`); return; }
+      const people = [];
+      if(t.driver && !isDriver(t)) people.push({ id: t.driver.id, name: (t.driver.display_name||"Conductor") + " (conduce)" });
+      members.filter(m => m.user_id !== me.id).forEach(m => people.push({ id: m.user_id, name: m.display_name || "Viajero" }));
+      modal(`<h3>Reportar un problema</h3>
+        <p class="muted">Lo leemos y, si incumple las normas, retiramos el viaje o la cuenta. La persona reportada no sabrá quién ha avisado.</p>
+        <form id="repForm">
+          <div class="field"><label for="repReason">Qué pasa</label><select id="repReason" required>
+            <option value="">Elige un motivo</option>
+            <option value="falso">El viaje o el perfil parecen falsos</option>
+            <option value="dinero">Pide dinero por adelantado o cobra más de lo justo</option>
+            <option value="incumplimiento">No se presentó o no cumplió lo acordado</option>
+            <option value="conducta">Trato inapropiado, acoso o algo que da miedo</option>
+            <option value="otro">Otra cosa</option>
+          </select></div>
+          ${people.length ? `<div class="field"><label for="repWho">Sobre quién (opcional)</label><select id="repWho"><option value="">El viaje en general</option>${people.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></div>` : ""}
+          <div class="field"><label for="repDetails">Cuéntanos qué ha pasado (opcional)</label><textarea id="repDetails" maxlength="1000" rows="4" placeholder="Lo justo para entenderlo. No incluyas teléfonos ni datos de otras personas."></textarea></div>
+          <p class="small muted">Si alguien está en peligro, llama al 112.</p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button type="button" class="btn secondary" id="mNo">Cancelar</button><button class="btn" id="repSend">Enviar reporte</button></div>
+        </form>`);
+      $("#mNo").onclick = closeModal;
+      $("#repForm").onsubmit = async e => {
+        e.preventDefault();
+        const reason = $("#repReason").value;
+        if(!reason){ $("#repReason").focus(); return; }
+        $("#repSend").disabled = true;
+        try{
+          await api.report({ trip_id: t.id, reported_user_id: $("#repWho")?.value || null, reason, details: $("#repDetails").value.trim() || null });
+          closeModal(); toast("Gracias. Lo revisaremos lo antes posible.", "ok");
+        }catch(err){ $("#repSend").disabled = false; toast(err.message || "No se pudo enviar el reporte", "err"); }
+      };
+    };
     const leaveFlow = () => {
       modal(`<h3>¿Ya no viajas?</h3><p class="muted">Tu plaza quedará libre para otra persona y saldrás del grupo. El conductor verá un aviso.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Sigo viajando</button><button class="btn danger" id="mYes">Ya no viajo</button></div>`);
       $("#mNo").onclick = closeModal;
@@ -2075,10 +2119,11 @@ function viewLegal(which){
       <ul>
         <li><strong>Datos de participación</strong>: si confirmas tu plaza, la fecha de confirmación; si el conductor te quita de un viaje, ese hecho, para que no puedas volver a apuntarte a ese mismo viaje; el enlace a un grupo externo que el conductor decida compartir, visible solo para los participantes.</li>
         <li><strong>Firmas por falta de transporte</strong>: el trayecto y la frecuencia que indiques. Solo se publican totales por trayecto; nunca quién ha firmado.</li>
+        <li><strong>Reportes</strong>: si reportas un viaje o a una persona, guardamos quién reporta, el motivo, lo que escribas y una referencia al viaje. Solo los ve el titular para revisarlos; la persona reportada no sabe quién ha avisado.</li>
       </ul>
       <p><strong>No solicitamos ni almacenamos números de teléfono.</strong> Si decides compartir tu teléfono u otros datos dentro del grupo privado de un viaje, lo haces voluntariamente y bajo tu responsabilidad.</p>
       <h2>Qué mostramos a otros usuarios</h2>
-      <p>Públicamente (sin iniciar sesión) se ven los datos de cada viaje y, del conductor, el nombre de pila con la inicial del apellido y la foto de perfil de su cuenta de Google, si la tiene. Dentro de un grupo de viaje, el conductor y los pasajeros apuntados ven el nombre abreviado y la foto de los demás miembros, si han confirmado su plaza, y los mensajes del grupo. Tu correo electrónico no se muestra nunca a otros usuarios. Si no quieres que se vea tu foto, puedes quitarla de tu cuenta de Google o pedirnos que la eliminemos.</p>
+      <p>Sin iniciar sesión solo se ven las localidades de origen y destino, la fecha y hora, las plazas y si el viaje es gratis o a pachas. El nombre del conductor (nombre de pila e inicial del apellido), su foto de Google, las zonas de salida y llegada, las paradas, el vehículo y la descripción solo los ven las personas registradas. Dentro de un grupo de viaje, el conductor y los pasajeros apuntados ven el nombre abreviado y la foto de los demás miembros, si han confirmado su plaza, y los mensajes del grupo. Tu correo electrónico no se muestra nunca a otros usuarios. Si no quieres que se vea tu foto, puedes quitarla de tu cuenta de Google o pedirnos que la eliminemos.</p>
       <h2>Finalidad y base jurídica</h2>
       <ul>
         <li>Crear y gestionar tu cuenta, publicar viajes, apuntarte a ellos y comunicarte en el grupo: <strong>ejecución del servicio que solicitas</strong> (art. 6.1.b RGPD).</li>
@@ -2096,7 +2141,7 @@ function viewLegal(which){
         <li>Para saber cuántas personas visitan la web usamos <strong>Vercel Web Analytics</strong>, que cuenta visitas de forma agregada y anónima (página visitada, país, tipo de dispositivo y web de procedencia), sin cookies y sin identificarte.</li>
       </ul>
       <h2>Conservación</h2>
-      <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
+      <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. Los reportes se conservan mientras se revisan y hasta 90 días después de cerrarlos, salvo que haya que conservarlos por una obligación legal. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
       <h2>Tus derechos</h2>
       <p>Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a <a href="mailto:${mail}">${mail}</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noopener">www.aepd.es</a>).</p>
       <h2>Cookies</h2>
@@ -2120,7 +2165,7 @@ function viewLegal(which){
       <h2>5. Verificación</h2>
       <p>${site} no verifica la identidad más allá del inicio de sesión con Google, ni comprueba permisos de conducir, vehículos, seguros o antecedentes. Te recomendamos aplicar el sentido común: comparte tu plan con una persona de confianza, encuéntrate en lugares públicos y no subas a un vehículo si algo no te inspira confianza.</p>
       <h2>6. Conducta</h2>
-      <p>Queda prohibido publicar información falsa, contenido ofensivo o discriminatorio, usar la plataforma para fines distintos al descrito, acosar a otros usuarios o recopilar sus datos. Los usuarios pueden reportar conductas inadecuadas a <a href="mailto:${mail}">${mail}</a>. El titular puede retirar contenidos y suspender cuentas sin previo aviso.</p>
+      <p>Queda prohibido publicar información falsa, contenido ofensivo o discriminatorio, usar la plataforma para fines distintos al descrito, acosar a otros usuarios o recopilar sus datos. Cualquier usuario puede reportar un viaje o a una persona con el botón "repórtalo" de cada viaje, o escribiendo a <a href="mailto:${mail}">${mail}</a>. Los reportes se revisan lo antes posible y, si se confirma un incumplimiento, el titular puede retirar viajes y suspender cuentas sin previo aviso. Nunca pagues por adelantado: en ${site} no hay precios ni pagos.</p>
       <h2>7. Datos personales</h2>
       <p>El tratamiento de datos se describe en la <a href="#/legal/privacidad">política de privacidad</a>. Los datos que otros usuarios te faciliten dentro de un grupo de viaje solo pueden usarse para organizar ese viaje.</p>
       <h2>8. Cambios y fin del servicio</h2>

@@ -6,7 +6,8 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://dbmqyczwjuahlydbfgtm.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "sb_publishable_IBV9ny5inC9MFPl5kJE1mw_Ql3Epku3";
 
-const TRIP_SELECT = "*,driver:profiles!trips_driver_id_fkey(id,display_name,avatar_url)";
+// Solo columnas públicas: sin conductor, zonas, paradas, vehículo ni descripción (eso solo con sesión).
+const TRIP_SELECT = "id,origin_city,dest_city,departure_at,flexibility,seats_total,seats_taken,cost_mode,contribution_eur,distance_km,status,created_at,origin_lat,origin_lng,dest_lat,dest_lng";
 
 async function getJson(url, init) {
   const ctrl = new AbortController();
