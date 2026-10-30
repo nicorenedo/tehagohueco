@@ -24,3 +24,7 @@ revoke all on public.trip_private from anon;
 revoke all on public.trip_removed from anon, authenticated;
 revoke truncate, references, trigger on public.demand_signatures from authenticated;
 revoke truncate, references, trigger on public.trip_private from authenticated;
+
+-- 5) Los reportes cerrados se borran a los 90 días (lo promete la política de privacidad)
+select cron.schedule('tehagohueco-purge-reports', '30 4 * * *',
+  $$delete from public.reports where status in ('resuelto','descartado') and resolved_at < now() - interval '90 days'$$);

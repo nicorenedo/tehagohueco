@@ -20,11 +20,13 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - Sin precios: cada viaje es `gratis` o `compartir` ("a pachas"); el reparto se acuerda en el grupo. `contribution_eur` siempre es 0.
 - Vercel: proyecto `tehagohueco` vinculado al repositorio; cada push a `main` publica en https://www.tehagohueco.es
 - Para hacer push desde el entorno de Claude, usa el remoto `https://github.com/nicorenedo/blablahelp` (GitHub redirige al repositorio renombrado `tehagohueco`; la URL nueva devuelve 403 por los permisos de la app).
+- Privacidad: sin sesión solo columnas públicas de `trips` (`PUBLIC_COLS`); nombre, foto, zonas, paradas, vehículo y descripción solo con sesión.
+- Reportes: tabla `reports` (solo inserción desde la web). Revisar con SQL a petición de Nico: `select * from reports where status='abierto' order by created_at`.
 - Nunca guardar teléfonos. Nunca poner la clave `service_role` en el frontend.
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 
 ## Estado
-- Supabase: proyecto de Supabase llamado `BlaBlaHelp` (nombre interno; ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`, `p1_tables_confirm_private_demand`, `p2_join_confirm_stats`, `p4_realtime_private`, `trip_coordinates` y el SQL manual `supabase/migrations/20261029b_quitar_y_liberar.sql`. Las migraciones que contienen borrados (`delete`) hay que ejecutarlas a mano en el SQL Editor: el conector pide una confirmación que falla. URL y clave publicable ya están en `CAMINO_CONFIG`.
+- Supabase: proyecto de Supabase llamado `BlaBlaHelp` (nombre interno; ref `dbmqyczwjuahlydbfgtm`, eu-west-1). Esquema aplicado como migraciones `blablahelp_initial_schema`, `harden_function_privileges` y `trip_editing_and_no_prices`, `p1_tables_confirm_private_demand`, `p2_join_confirm_stats`, `p4_realtime_private`, `trip_coordinates` y el SQL manual `supabase/migrations/20261029b_quitar_y_liberar.sql`; migración `reports` aplicada; pendiente de ejecutar a mano `supabase/migrations/20261030_privacidad_y_seguridad.sql` (permisos por columna para anon, perfiles solo con sesión, avisos de seguridad, borrado de reportes). Las migraciones que contienen borrados (`delete`) hay que ejecutarlas a mano en el SQL Editor: el conector pide una confirmación que falla. URL y clave publicable ya están en `CAMINO_CONFIG`.
 - Google OAuth activo y publicado. Antes se llamaba BlaBlaHelp y vivía en blablahelp.vercel.app; ese dominio y tehagohueco.vercel.app redirigen con 308 a https://www.tehagohueco.es (reglas en `vercel.json`). Dominio comprado en OVH; DNS: A @ 216.198.79.1 y CNAME www 9e943dbbd4a32f64.vercel-dns-017.com. No usar el nombre antiguo en ningún sitio. Site URL y Redirect URLs deben apuntar a https://www.tehagohueco.es
 
 ## Despliegue
