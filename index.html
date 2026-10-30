@@ -1745,7 +1745,9 @@ async function viewTrip(id){
     else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button><p class="small muted" style="margin:10px 0 0;text-align:center">Entrarás en el grupo privado del viaje. 48 horas antes de salir te pediremos que confirmes; si cambias de planes, pulsa "Ya no viajo" y la plaza queda libre.</p>`;
 
     const pendingCount = members.filter(m=>!m.confirmed_at).length;
-    const membersHtml = !me ? `<p class="muted small">Inicia sesión para ver quién va.</p>`
+    const others = t.seats_taken === 1 ? "Hay 1 persona apuntada" : `Hay ${t.seats_taken} personas apuntadas`;
+    const membersHtml = !me ? `<p class="muted small">${t.seats_taken ? others + ". " : ""}Inicia sesión para ver quién va.</p>`
+      : !(driver || amMember) ? `<p class="muted small">${t.seats_taken ? others + ". Por privacidad, solo quienes van en el viaje ven quiénes son." : "Todavía nadie se ha apuntado."}</p>`
       : members.length ? `<ul class="member-list">${members.map(m=>memberChip(m, driver && !cancelled)).join("")}</ul>${driver && pendingCount && inConfirmWindow(t) ? `<p class="small muted" style="margin:10px 0 0">${pendingCount===1?"Una persona no ha confirmado":`${pendingCount} personas no han confirmado`}. Si no lo hacen antes del ${fmtWhen(confirmDeadline(t))}, sus plazas se liberan solas.</p>` : ""}`
       : `<p class="muted small">Todavía nadie se ha apuntado.</p>`;
     const canChat = me && (driver || amMember);
