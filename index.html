@@ -22,7 +22,6 @@
 <link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
 <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%232f4a58'/%3E%3Ctext x='32' y='44' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='34' text-anchor='middle' fill='%23e0a912'%3ETH%3C/text%3E%3C/svg%3E">
 
 <script>
@@ -536,8 +535,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 <div class="toast-wrap" id="toasts"></div>
 <div id="modalRoot"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 
 <script>
 (() => {
@@ -619,6 +617,20 @@ function searchPlaces(q, limit=8){
   }
   out.sort((a,b) => a[0]-b[0] || a[1]-b[1]);
   return out.slice(0, limit).map(x => x[2]);
+}
+let leafletPromise = null;
+function loadLeaflet(){
+  if(window.L) return Promise.resolve();
+  if(!leafletPromise){
+    leafletPromise = new Promise((ok, ko) => {
+      const base = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/";
+      const css = document.createElement("link"); css.rel = "stylesheet"; css.href = base + "leaflet.css"; document.head.appendChild(css);
+      const js = document.createElement("script"); js.src = base + "leaflet.js"; js.onload = ok;
+      js.onerror = () => { leafletPromise = null; js.remove(); ko(new Error("leaflet")); };
+      document.head.appendChild(js);
+    });
+  }
+  return leafletPromise;
 }
 function tripPoints(t){
   const a = (t.origin_lat != null && t.origin_lng != null) ? { lat:t.origin_lat, lng:t.origin_lng } : findPlace(t.origin_city);
@@ -779,6 +791,34 @@ const inConfirmWindow = t => { const dep = new Date(t.departure_at).getTime(); r
 const confirmOpensAt = t => new Date(new Date(t.departure_at).getTime() - CONFIRM_OPEN_H*3600e3);
 const confirmDeadline = t => new Date(new Date(t.departure_at).getTime() - CONFIRM_DEADLINE_H*3600e3);
 
+/* Datos públicos (viajes y firmas): una sola petición cacheada en la CDN (/api/publico).
+   Tras cualquier cambio del propio usuario se consulta Supabase directamente durante un rato. */
+const PUB_TTL = 20e3, TRIP_SEL = "*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)";
+let pubData = null, pubAt = 0, pubPromise = null, freshUntil = 0;
+function touchPublic(){ freshUntil = Date.now() + 90e3; pubData = null; pubPromise = null; }
+async function fetchPublic(){
+  if(Date.now() > freshUntil){
+    try{
+      const r = await fetch("/api/publico", { headers:{ accept:"application/json" } });
+      if(r.ok){ const j = await r.json(); if(Array.isArray(j.trips)) return j; }
+    }catch(_){}
+  }
+  const since = new Date(Date.now()-2*3600e3).toISOString();
+  const [tr, dm] = await Promise.all([
+    sb.from("trips").select(TRIP_SEL).gte("departure_at", since).neq("status","cancelado").order("departure_at", { ascending:true }).limit(1000),
+    sb.rpc("demand_stats")
+  ]);
+  if(tr.error) throw tr.error;
+  return { trips: tr.data || [], demand: dm.error ? null : dm.data };
+}
+function publicData(){
+  if(pubData && Date.now() - pubAt < PUB_TTL) return Promise.resolve(pubData);
+  if(!pubPromise){
+    pubPromise = fetchPublic().then(d => { pubData = d; pubAt = Date.now(); return d; }).finally(() => { pubPromise = null; });
+  }
+  return pubPromise;
+}
+
 const api = {
   async init(){
     if(DEMO){ return; }
@@ -815,12 +855,8 @@ const api = {
     if(DEMO){
       rows = demoState.trips.slice();
     } else {
-      let q = sb.from("trips").select("*, driver:profiles!trips_driver_id_fkey(id, display_name, avatar_url)")
-        .gte("departure_at", new Date(Date.now()-2*3600e3).toISOString())
-        .neq("status","cancelado").order("departure_at", { ascending:true }).limit(1000);
-      const { data, error } = await q;
-      if(error){ toast("No se pudieron cargar los viajes", "err"); return []; }
-      rows = data;
+      try{ rows = (await publicData()).trips.map(t => Object.assign({}, t)); }
+      catch(_){ toast("No se pudieron cargar los viajes", "err"); return []; }
     }
     const now = Date.now()-2*3600e3;
     const R = f.near ? 35 : 3;
@@ -852,8 +888,9 @@ const api = {
       demoState.trips.forEach(t => { if(t.origin_city==="Madrid" && t.status!=="cancelado" && new Date(t.departure_at) > new Date()) out[t.dest_city] = (out[t.dest_city]||0)+1; });
       return out;
     }
-    const { data } = await sb.from("trips").select("dest_city").eq("origin_city","Madrid").neq("status","cancelado").gte("departure_at", new Date().toISOString()).in("dest_city", dests).limit(1000);
-    (data||[]).forEach(r => out[r.dest_city] = (out[r.dest_city]||0)+1);
+    const trips = await publicData().then(d => d.trips).catch(() => []);
+    const now = Date.now();
+    trips.forEach(t => { if(t.origin_city==="Madrid" && t.status!=="cancelado" && dests.includes(t.dest_city) && new Date(t.departure_at).getTime() >= now) out[t.dest_city] = (out[t.dest_city]||0)+1; });
     return out;
   },
   async getTrip(id){
@@ -931,7 +968,7 @@ const api = {
     if(error) throw error;
   },
   subscribe(tripId, onChange){
-    if(DEMO) return () => {};
+    if(DEMO || !me) return () => {};
     const ch = sb.channel("trip-"+tripId)
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"messages", filter:`trip_id=eq.${tripId}` }, onChange)
       .on("postgres_changes", { event:"*", schema:"public", table:"trip_members", filter:`trip_id=eq.${tripId}` }, onChange)
@@ -975,9 +1012,8 @@ const api = {
       const signatures = routes.reduce((a,r)=>a+r.total,0);
       return { people: Math.round(signatures*0.82), signatures, routes };
     }
-    const { data, error } = await sb.rpc("demand_stats");
-    if(error) return { people:0, signatures:0, routes:[] };
-    return data;
+    const d = await publicData().catch(() => null);
+    return (d && d.demand) || { people:0, signatures:0, routes:[] };
   },
   async mySignatures(){
     if(!me) return [];
@@ -1014,6 +1050,11 @@ const api = {
     await sb.auth.signOut();
   }
 };
+/* Cualquier cambio del usuario invalida la caché pública para que lo vea al momento */
+["createTrip","updateTrip","deleteTrip","cancelTrip","join","leave","removeMember","sign","unsign","deleteAccount"].forEach(k => {
+  const fn = api[k];
+  api[k] = async (...args) => { try{ return await fn.apply(api, args); } finally { touchPublic(); } };
+});
 const isDriver = t => me && (t.driver_id === me.id || t.driver?.id === me.id);
 
 /* ---------------- Auth UI ---------------- */
@@ -1296,7 +1337,7 @@ function viewHome(p){
   });
   let lastResults = [];
   async function loadResults(){
-    await loadPlaces();
+    if($("#fo")?.value.trim() || $("#fd")?.value.trim()) await loadPlaces().catch(() => {});
     const po = readPlace("fo"), pd = readPlace("fd");
     const f = { origin: po && !po.invalid ? po.label : "", originPt: po && !po.invalid ? po : null, dest: pd && !pd.invalid ? pd.label : "", destPt: pd && !pd.invalid ? pd : null, near: near(), date:$("#ff").value, seats:Number($("#fs").value)||1, gratis:gratis(), full:full(), sort:$("#fsort").value };
     if(weekend && f.date){ const sat = new Date(f.date+"T12:00"); const sun = new Date(sat.getTime()+864e5); f.date = ""; f.dates = [isoLocal(sat), isoLocal(sun)]; }
@@ -1315,7 +1356,7 @@ function viewHome(p){
     if(mode==="map") drawMap(rows);
   }
   function drawMap(rows){
-    if(!window.L) return;
+    if(!window.L){ loadLeaflet().then(() => { if(mode==="map") drawMap(lastResults); }).catch(() => toast("No se pudo cargar el mapa", "err")); return; }
     if(!mapInst || !document.body.contains(mapInst.getContainer())){
       mapInst = L.map("map", { scrollWheelZoom:false }).setView([38.6, -4.3], 6);
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", { attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>', maxZoom:18 }).addTo(mapInst);
@@ -1962,7 +2003,7 @@ document.addEventListener("click", e => { if(e.target.closest("nav.main a")) $("
 if(DEMO){
   const b = document.createElement("div"); b.className = "demo-badge"; b.textContent = "Modo demostración · datos de ejemplo"; document.body.appendChild(b);
 }
-(window.requestIdleCallback || (cb => setTimeout(cb, 1200)))(() => loadPlaces());
+if(DEMO) (window.requestIdleCallback || (cb => setTimeout(cb, 1200)))(() => loadPlaces());
 (async () => {
   try{ await api.init(); }catch(e){ console.error(e); toast("No se pudo conectar con el servidor", "err"); }
   renderAuth();
