@@ -37,7 +37,7 @@ window.CAMINO_CONFIG = {
   supabaseAnonKey: "sb_publishable_IBV9ny5inC9MFPl5kJE1mw_Ql3Epku3",
   contactEmail: "tehagohueco.contacto@gmail.com",
   // Clave gratuita de CARTO Basemaps (carto.com/basemaps/apikey). Sin ella se usa el mapa de OpenStreetMap.
-  cartoKey: "",
+  cartoKey: "cb1_4y9m_1_7ef91c86fca44576d075a8ba",
   siteName: "Te Hago Hueco",
   ownerName: "Nicolás Renedo de la Lastra",
 };
@@ -646,8 +646,8 @@ function addBaseTiles(map){
   const osm = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
   if(key){
     const k = encodeURIComponent(key);
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png?key=${k}`, { attribution: osm + ' &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains:"abcd", maxZoom:18 }).addTo(map);
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}{r}.png?key=${k}`, { subdomains:"abcd", maxZoom:18, pane:"shadowPane" }).addTo(map);
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png?key=${k}`, { attribution: osm + ' &copy; <a href="https://carto.com/attributions">CARTO</a>', subdomains:"abcd", maxZoom:18 }).addTo(map);
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png?key=${k}`, { subdomains:"abcd", maxZoom:18, pane:"shadowPane" }).addTo(map);
   } else {
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: osm, maxZoom:18, className:"tiles-muted" }).addTo(map);
   }
