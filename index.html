@@ -2019,6 +2019,7 @@ function viewLegal(which){
         <li><strong>Vercel</strong> (alojamiento de la web), que registra datos técnicos de acceso como la dirección IP. Vercel es una empresa de Estados Unidos; las transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU. y en cláusulas contractuales tipo.</li>
         <li><strong>Google</strong>, para el inicio de sesión, conforme a su propia política de privacidad.</li>
         <li>Para mostrar la web, tu navegador descarga recursos de terceros, que reciben tu dirección IP: la tipografía, de <strong>Fontshare</strong> (Indian Type Foundry); las librerías de mapa y conexión, de <strong>jsDelivr</strong>; y, solo si abres el mapa, las imágenes del mapa, de <strong>CARTO</strong> o de los servidores de <strong>OpenStreetMap</strong>.</li>
+        <li>Para saber cuántas personas visitan la web usamos <strong>Vercel Web Analytics</strong>, que cuenta visitas de forma agregada y anónima (página visitada, país, tipo de dispositivo y web de procedencia), sin cookies y sin identificarte.</li>
       </ul>
       <h2>Conservación</h2>
       <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
@@ -2078,5 +2079,8 @@ if(DEMO) (window.requestIdleCallback || (cb => setTimeout(cb, 1200)))(() => load
 })();
 })();
 </script>
+<!-- Estadísticas de visitas de Vercel Web Analytics: sin cookies, datos agregados -->
+<script>window.va = window.va || function(){ (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
