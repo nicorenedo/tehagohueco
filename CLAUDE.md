@@ -16,6 +16,7 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - El routing es por hash (`#/publicar`, `#/viaje/:id`), así que cualquier hosting estático sirve sin reglas de reescritura.
 - Sin precios: cada viaje es `gratis` o `compartir` ("a pachas"); el reparto se acuerda en el grupo. `contribution_eur` siempre es 0.
 - Vercel: proyecto `tehagohueco` vinculado al repositorio; cada push a `main` publica en https://www.tehagohueco.es
+- Para hacer push desde el entorno de Claude, usa el remoto `https://github.com/nicorenedo/blablahelp` (GitHub redirige al repositorio renombrado `tehagohueco`; la URL nueva devuelve 403 por los permisos de la app).
 - Nunca guardar teléfonos. Nunca poner la clave `service_role` en el frontend.
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 
