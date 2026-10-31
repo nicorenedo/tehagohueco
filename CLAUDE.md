@@ -21,7 +21,7 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - Vercel: proyecto `tehagohueco` vinculado al repositorio; cada push a `main` publica en https://www.tehagohueco.es
 - Para hacer push desde el entorno de Claude, usa el remoto `https://github.com/nicorenedo/blablahelp` (GitHub redirige al repositorio renombrado `tehagohueco`; la URL nueva devuelve 403 por los permisos de la app).
 - Privacidad: sin sesión solo columnas públicas de `trips` (`PUBLIC_COLS`); nombre, foto, zonas, paradas, vehículo y descripción solo con sesión.
-- Reportes: tabla `reports` (solo inserción desde la web). Revisar con SQL a petición de Nico: `select * from reports where status='abierto' order by created_at`.
+- Reportes: tabla `reports` (solo inserción desde la web). Motivo `seguridad` (conducción peligrosa o accidente) = urgente; si la restricción aún no lo admite, el cliente lo guarda como `conducta` con el texto marcado. Revisar con SQL a petición de Nico: `select * from reports where status='abierto' order by created_at`.
 - Nunca guardar teléfonos. Nunca poner la clave `service_role` en el frontend.
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 

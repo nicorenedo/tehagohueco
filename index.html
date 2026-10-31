@@ -1166,7 +1166,10 @@ const api = {
   },
   async report(r){
     if(DEMO){ return; }
-    const { error } = await sb.from("reports").insert(r);
+    let { error } = await sb.from("reports").insert(r);
+    if(error && r.reason === "seguridad" && /check|violat/i.test(error.message || "")){
+      ({ error } = await sb.from("reports").insert(Object.assign({}, r, { reason: "conducta", details: ("[Conducción peligrosa o accidente] " + (r.details || "")).slice(0, 1000) })));
+    }
     if(error) throw error;
   },
   async deleteAccount(){
@@ -1969,6 +1972,7 @@ async function viewTrip(id){
               <li>Quedad en un sitio público y conocido, como una estación o un centro comercial.</li>
               <li>Comparte con alguien de confianza la matrícula, la hora de salida y la de llegada prevista.</li>
               <li>Si algo no te cuadra el día del viaje, no subas. Pulsa "Ya no viajo" y busca otro.</li>
+              <li>Si durante el viaje el conductor va a una velocidad peligrosa o conduce de forma imprudente, pídele que pare en un lugar seguro y bájate. Después, repórtalo. Ante cualquier emergencia, llama al 112.</li>
             </ul>
             <p class="small muted" style="margin:0">${esc(CFG.siteName)} no verifica vehículos ni conductores y no participa en el acuerdo entre viajeros. Si ves algo raro, <button type="button" class="linklike" id="reportBtn">repórtalo</button> y lo revisamos.</p>
           </div>
@@ -2001,6 +2005,7 @@ async function viewTrip(id){
             <option value="falso">El viaje o el perfil parecen falsos</option>
             <option value="dinero">Pide dinero por adelantado o cobra más de lo justo</option>
             <option value="incumplimiento">No se presentó o no cumplió lo acordado</option>
+            <option value="seguridad">Conducción peligrosa o accidente</option>
             <option value="conducta">Trato inapropiado, acoso o algo que da miedo</option>
             <option value="otro">Otra cosa</option>
           </select></div>
