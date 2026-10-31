@@ -585,6 +585,9 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .btn svg{vertical-align:-3px}
 .back-link{margin:14px 0 0}
 @media (max-width:520px){.share-box{flex-direction:column;align-items:stretch}.share-box .btn{width:100%;justify-content:center}}
+.alert-opt{margin:0 0 14px;color:var(--muted)}
+.alert-opt input{margin-top:3px}
+.alert-on{margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -1162,9 +1165,30 @@ const api = {
     const { data } = await sb.from("demand_signatures").select("origin_city, dest_city, need, created_at").eq("user_id", me.id).order("created_at");
     return data || [];
   },
-  async sign(origin, dest, need){
+  async notifyPrefs(){
+    if(!me) return null;
+    if(DEMO) return demoState.prefs || { trip_updates:true, route_alerts:false, route_alerts_until:null };
+    const { data, error } = await sb.rpc("my_notify_prefs");
+    if(error) return null;
+    return data;
+  },
+  async setNotifyPrefs(tripUpdates, routeAlerts){
+    if(DEMO){
+      const p = demoState.prefs || { trip_updates:true, route_alerts:false, route_alerts_until:null };
+      if(tripUpdates != null) p.trip_updates = tripUpdates;
+      if(routeAlerts === true){ p.route_alerts = true; p.route_alerts_until = new Date(Date.now()+15*864e5).toISOString(); }
+      if(routeAlerts === false){ p.route_alerts = false; p.route_alerts_until = null; }
+      demoState.prefs = p; return p;
+    }
+    const { data, error } = await sb.rpc("set_notify_prefs", { p_trip_updates: tripUpdates, p_route_alerts: routeAlerts });
+    if(error) throw error;
+    return data;
+  },
+  async sign(origin, dest, need, pts){
     if(DEMO){ demoState.signatures = demoState.signatures.filter(x=>!(x.origin_city===origin && x.dest_city===dest)); demoState.signatures.push({ origin_city:origin, dest_city:dest, need, created_at:new Date().toISOString() }); return; }
-    const { error } = await sb.from("demand_signatures").upsert({ user_id: me.id, origin_city: origin, dest_city: dest, need });
+    const row = { user_id: me.id, origin_city: origin, dest_city: dest, need };
+    if(pts && pts.o && pts.d) Object.assign(row, { origin_lat: pts.o.lat, origin_lng: pts.o.lng, dest_lat: pts.d.lat, dest_lng: pts.d.lng });
+    const { error } = await sb.from("demand_signatures").upsert(row);
     if(error) throw error;
   },
   async unsign(origin, dest){
@@ -2197,7 +2221,7 @@ async function viewMine(){
     $("#mineLogin").onclick = () => api.signIn(); return;
   }
   app.innerHTML = `<section class="page"><div class="wrap"><h1>Mis viajes</h1><div class="skeleton"></div></div></section>`;
-  const [{ driving, riding }, sigs] = await Promise.all([api.myTrips(), api.mySignatures()]);
+  const [{ driving, riding }, sigs, prefs] = await Promise.all([api.myTrips(), api.mySignatures(), api.notifyPrefs()]);
   const now = Date.now();
   const upcoming = r => r.filter(t => new Date(t.departure_at).getTime() > now - 2*3600e3);
   const ridingCard = (t, i) => {
@@ -2222,7 +2246,13 @@ async function viewMine(){
     <div id="mineMatches" style="margin-top:40px"></div>
     <h2 style="margin-top:40px">Mis firmas</h2>
     ${sigs.length ? `<ul class="sig-list">${sigs.map(x=>`<li><span><b>${esc(x.origin_city)} → ${esc(x.dest_city)}</b> <span class="muted small">${NEED[x.need]||""}</span></span><button class="btn sm secondary" data-unsign="${esc(x.origin_city)}|${esc(x.dest_city)}">Retirar firma</button></li>`).join("")}</ul>` : `<div class="empty"><p>No has firmado ningún trayecto. Si te falta cómo viajar, <a href="#/transporte">déjalo por escrito</a>.</p></div>`}
-    <div class="panel box" style="margin-top:56px">
+    ${prefs ? `<div class="panel box" id="avisos" style="margin-top:56px">
+      <h3>Avisos por correo</h3>
+      <p class="muted small">Te escribimos a ${esc(me.email || "tu correo de Google")} desde avisos@tehagohueco.es. Como mucho tres al día, salvo cancelaciones de última hora, y nunca publicidad.</p>
+      <label class="check"><input type="checkbox" id="prefTrips" ${prefs.trip_updates ? "checked" : ""}><span><b>Avisos de mis viajes.</b> Si cancelan o cambian un viaje en el que vas, si te quitan de un viaje, el recordatorio para confirmar y, si conduces, quién se apunta o se va.</span></label>
+      <label class="check"><input type="checkbox" id="prefAlerts" ${prefs.route_alerts ? "checked" : ""}><span><b>Alertas de viajes nuevos</b> en las rutas que has pedido en "Pide transporte". Como mucho una al día. ${prefs.route_alerts && prefs.route_alerts_until ? `Activas hasta el ${esc(fmtDayShort(prefs.route_alerts_until))}; se apagan solas.` : "Se apagan solas a los 15 días."}${!sigs.length ? ` Para recibirlas, <a href="#/transporte">firma una ruta</a>.` : ""}</span></label>
+    </div>` : ""}
+    <div class="panel box" style="margin-top:${prefs ? "16px" : "56px"}">
       <h3>Tu cuenta</h3>
       <p class="muted small">Guardamos únicamente tu nombre, tu correo (para identificarte) y, si Google la facilita, tu foto de perfil. Puedes borrar tu cuenta y todos tus datos en cualquier momento; tus viajes publicados se cancelarán, saldrás de los grupos y se retirarán tus firmas.</p>
       <button class="btn danger sm" id="delAcc">Eliminar mi cuenta y mis datos</button>
@@ -2241,6 +2271,16 @@ async function viewMine(){
     const [o, d] = b.dataset.unsign.split("|");
     try{ await api.unsign(o, d); toast("Firma retirada"); }catch(err){ toast(err.message, "err"); } viewMine();
   });
+  const prefSave = async (trip, alerts, el) => {
+    el.disabled = true;
+    try{ await api.setNotifyPrefs(trip, alerts); toast("Preferencias guardadas", "ok"); }
+    catch(err){ el.checked = !el.checked; toast(err.message || "No se pudo guardar", "err"); }
+    el.disabled = false;
+    if(alerts != null) viewMine();
+  };
+  if($("#prefTrips")) $("#prefTrips").onchange = e => prefSave(e.target.checked, null, e.target);
+  if($("#prefAlerts")) $("#prefAlerts").onchange = e => prefSave(null, e.target.checked, e.target);
+  if(location.hash.includes("ir=avisos")) setTimeout(() => $("#avisos")?.scrollIntoView({ behavior:"smooth", block:"start" }), 80);
   $("#delAcc").onclick = () => {
     modal(`<h3>¿Eliminar tu cuenta?</h3><p class="muted">Se borrarán tu perfil, tus viajes, tus mensajes, tus inscripciones y tus firmas. Esta acción no se puede deshacer.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Volver</button><button class="btn danger" id="mYes">Eliminar definitivamente</button></div>`);
     $("#mNo").onclick = closeModal;
@@ -2262,7 +2302,8 @@ function demandRows(routes, limit){
 async function viewTransport(p){
   setNav("transporte");
   app.innerHTML = `<section class="page"><div class="wrap"><div class="skeleton"></div></div></section>`;
-  const [stats, sigs] = await Promise.all([api.demandStats(), api.mySignatures()]);
+  const [stats, sigs, prefs] = await Promise.all([api.demandStats(), api.mySignatures(), api.notifyPrefs()]);
+  const alertsOn = !!(prefs && prefs.route_alerts);
   const mineSet = new Set(sigs.map(x => x.origin_city+"|"+x.dest_city));
   app.innerHTML = `<section class="page"><div class="wrap">
     <div class="grid transport-head">
@@ -2293,6 +2334,9 @@ async function viewTransport(p){
             <legend class="small" style="font-size:var(--step-small);font-weight:500;color:var(--muted);margin-bottom:8px">¿Con qué frecuencia lo necesitas?</legend>
             <div class="chips" id="needChips">${["diario","semanal","puntual"].map((n,i)=>`<button type="button" class="chip${i===1?" on":""}" data-need="${n}">${NEED_LABEL[n]}</button>`).join("")}</div>
           </fieldset>
+          ${alertsOn
+            ? `<p class="small muted alert-on">Te avisaremos por correo de viajes nuevos en tus rutas hasta el ${esc(fmtDayShort(prefs.route_alerts_until))}. <a href="#/mis-viajes?ir=avisos">Cambiarlo</a></p>`
+            : `<label class="check small alert-opt"><input type="checkbox" id="alertOpt"><span>Avísame por correo si sale un viaje en esta ruta. Como mucho un correo al día; se apaga solo a los 15 días.</span></label>`}
           <button class="btn accent block" type="submit" id="signBtn">${me ? "Firmar este trayecto" : `${ICON.google} Entrar con Google y firmar`}</button>
           <p class="small muted" style="margin:12px 0 0">Una firma por persona y trayecto. Puedes retirarla cuando quieras desde "Mis viajes".</p>
         </form>
@@ -2317,9 +2361,15 @@ async function viewTransport(p){
     if(so.invalid || sd.invalid){ toast("Elige las localidades de la lista", "err"); return; }
     const o = so.label, d = sd.label;
     if(o === d){ toast("Origen y destino no pueden ser la misma localidad", "err"); return; }
-    if(!me){ try{ sessionStorage.setItem("thh_pending_sign", JSON.stringify({ o, d, need })); }catch(_){} return api.signIn(); }
+    const pts = { o: { lat: so.lat, lng: so.lng }, d: { lat: sd.lat, lng: sd.lng } };
+    const wantAlerts = !!$("#alertOpt")?.checked;
+    if(!me){ try{ sessionStorage.setItem("thh_pending_sign", JSON.stringify({ o, d, need, pts, alerts: wantAlerts })); }catch(_){} return api.signIn(); }
     $("#signBtn").disabled = true;
-    try{ await api.sign(o, d, need); toast(mineSet.has(o+"|"+d) ? "Firma actualizada" : "Gracias. Tu firma cuenta.", "ok"); }catch(err){ toast(err.message, "err"); }
+    try{
+      await api.sign(o, d, need, pts);
+      if(wantAlerts) await api.setNotifyPrefs(null, true).catch(() => {});
+      toast(wantAlerts ? "Gracias. Te avisaremos si sale un viaje." : mineSet.has(o+"|"+d) ? "Firma actualizada" : "Gracias. Tu firma cuenta.", "ok");
+    }catch(err){ toast(err.message, "err"); }
     viewTransport({ o, d, just: 1 });
   };
   document.querySelectorAll("[data-unsign]").forEach(b => b.onclick = async () => {
@@ -2335,7 +2385,11 @@ async function resumePendingSign(){
   if(!me) return;
   let p = null; try{ p = JSON.parse(sessionStorage.getItem("thh_pending_sign")||"null"); sessionStorage.removeItem("thh_pending_sign"); }catch(_){}
   if(!p) return;
-  try{ await api.sign(p.o, p.d, p.need); toast("Gracias. Tu firma cuenta.", "ok"); }catch(_){}
+  try{
+    await api.sign(p.o, p.d, p.need, p.pts);
+    if(p.alerts) await api.setNotifyPrefs(null, true).catch(() => {});
+    toast(p.alerts ? "Gracias. Te avisaremos si sale un viaje." : "Gracias. Tu firma cuenta.", "ok");
+  }catch(_){}
 }
 
 /* ---------------- Vista: cómo funciona ---------------- */
@@ -2403,7 +2457,8 @@ function viewLegal(which){
       </ul>
       <ul>
         <li><strong>Datos de participación</strong>: si confirmas tu plaza, la fecha de confirmación; si el conductor te quita de un viaje, ese hecho, para que no puedas volver a apuntarte a ese mismo viaje; el enlace a un grupo externo que el conductor decida compartir, visible solo para los participantes.</li>
-        <li><strong>Firmas por falta de transporte</strong>: el trayecto y la frecuencia que indiques. Solo se publican totales por trayecto; nunca quién ha firmado.</li>
+        <li><strong>Firmas por falta de transporte</strong>: el trayecto, la frecuencia que indiques y las coordenadas aproximadas de las dos localidades (para avisarte de viajes cercanos). Solo se publican totales por trayecto; nunca quién ha firmado.</li>
+        <li><strong>Avisos por correo</strong>: tus preferencias de avisos, si has pedido alertas de ruta, cuándo diste ese consentimiento y hasta cuándo dura, y un registro de los avisos enviados (tipo, fecha y resultado del envío).</li>
         <li><strong>Reportes</strong>: si reportas un viaje o a una persona, guardamos quién reporta, el motivo, lo que escribas y una referencia al viaje. Solo los ve el titular para revisarlos; la persona reportada no sabe quién ha avisado.</li>
       </ul>
       <p><strong>No solicitamos ni almacenamos números de teléfono.</strong> Si decides compartir tu teléfono u otros datos dentro del grupo privado de un viaje, lo haces voluntariamente y bajo tu responsabilidad.</p>
@@ -2414,6 +2469,8 @@ function viewLegal(which){
         <li>Crear y gestionar tu cuenta, publicar viajes, apuntarte a ellos y comunicarte en el grupo: <strong>ejecución del servicio que solicitas</strong> (art. 6.1.b RGPD).</li>
         <li>Garantizar la seguridad del servicio y prevenir abusos: <strong>interés legítimo</strong> (art. 6.1.f RGPD).</li>
         <li>Atender reportes y comunicaciones: <strong>interés legítimo y consentimiento</strong>.</li>
+        <li>Enviarte avisos por correo sobre los viajes en los que participas (cancelaciones, cambios, confirmaciones y pasajeros): <strong>ejecución del servicio</strong> (art. 6.1.b RGPD). Puedes desactivarlos en "Mis viajes" o con el enlace de cada correo.</li>
+        <li>Enviarte alertas de viajes nuevos en las rutas que has pedido: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al firmar. Duran 15 días y puedes retirarlas en cualquier momento.</li>
       </ul>
       <p>No utilizamos tus datos con fines publicitarios, no elaboramos perfiles y no los cedemos a terceros con fines comerciales.</p>
       <h2>Encargados y transferencias</h2>
@@ -2422,11 +2479,12 @@ function viewLegal(which){
         <li><strong>Supabase</strong> (base de datos, autenticación y mensajería), con servidores en la Unión Europea (Irlanda), como encargado del tratamiento.</li>
         <li><strong>Vercel</strong> (alojamiento de la web), que registra datos técnicos de acceso como la dirección IP. Vercel es una empresa de Estados Unidos; las transferencias se amparan en el Marco de Privacidad de Datos UE-EE. UU. y en cláusulas contractuales tipo.</li>
         <li><strong>Google</strong>, para el inicio de sesión, conforme a su propia política de privacidad.</li>
+        <li><strong>Brevo</strong> (Sendinblue SAS, Francia), para enviar los avisos por correo, como encargado del tratamiento. Solo recibe tu dirección de correo, tu nombre y el contenido de cada aviso. No usamos sus funciones de publicidad.</li>
         <li>Para mostrar la web, tu navegador descarga recursos de terceros, que reciben tu dirección IP: la tipografía, de <strong>Fontshare</strong> (Indian Type Foundry); las librerías de mapa y conexión, de <strong>jsDelivr</strong>; y, solo si abres el mapa, las imágenes del mapa, de <strong>CARTO</strong> o de los servidores de <strong>OpenStreetMap</strong>.</li>
         <li>Para saber cuántas personas visitan la web usamos <strong>Vercel Web Analytics</strong>, que cuenta visitas de forma agregada y anónima (página visitada, país, tipo de dispositivo y web de procedencia), sin cookies y sin identificarte.</li>
       </ul>
       <h2>Conservación</h2>
-      <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. Los reportes se conservan mientras se revisan y hasta 90 días después de cerrarlos, salvo que haya que conservarlos por una obligación legal. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
+      <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. El registro de avisos enviados se borra a los 30 días. Los reportes se conservan mientras se revisan y hasta 90 días después de cerrarlos, salvo que haya que conservarlos por una obligación legal. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
       <h2>Tus derechos</h2>
       <p>Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a <a href="mailto:${mail}">${mail}</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noopener">www.aepd.es</a>).</p>
       <h2>Cookies</h2>
