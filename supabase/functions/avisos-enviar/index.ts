@@ -87,6 +87,16 @@ function compose(j: Job) {
       cta = { label: "Ver el viaje", url: tripUrl(t.id) };
       break;
     }
+    case "gracias": {
+      const n = Number(j.extra.riders || 0);
+      subject = `Gracias por hacer hueco en tu viaje a ${t.dest_city}`;
+      lines = [`Esperamos que el viaje de ${route} del ${day(t.departure_at)} fuera bien. Llevaste a ${n === 1 ? "una persona" : `${n} personas`}: gracias por hacer hueco.`,
+        "Esto solo funciona porque gente como tú pone su coche al servicio de los demás, y en estos días se nota mucho.",
+        "Si durante el viaje pasó algo que debamos saber, entra en el viaje y pulsa \"repórtalo\". Lo leemos todo.",
+        "Y si también vuelves, puedes publicar la vuelta en un minuto."];
+      cta = { label: "Publicar la vuelta", url: `${SITE}/#/publicar?vuelta=${t.id}` };
+      break;
+    }
     case "alerta": {
       const trips: any[] = j.extra.trips || [];
       subject = trips.length === 1
@@ -143,6 +153,7 @@ function unsubHeaders(url: string) {
 
 async function sendResend(j: Job, key: string) {
   const m = compose(j);
+  if (!m.subject) throw new Error(`Sin plantilla para el tipo ${j.kind}`);
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
