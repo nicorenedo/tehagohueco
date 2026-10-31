@@ -225,6 +225,47 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .wanted li > div{display:grid;gap:2px}
 #repForm .field{margin-bottom:14px}
 .linklike{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.dir-row{display:grid;gap:10px;margin:-8px 0 26px}
+.pop-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pop-chips .chip{background:var(--paper)}
+.pop-chips .chip b{font-weight:700;color:var(--field)}
+.rsec{margin-bottom:clamp(30px,4vw,48px)}
+.rsec-h{margin:0 0 16px}
+.rsec-h h3{margin:0;font-size:var(--step-lead);letter-spacing:-.015em}
+.rsec-h .count{display:inline-grid;place-items:center;min-width:1.6em;height:1.6em;padding:0 .4em;border-radius:999px;background:var(--surface);font-size:.7em;font-weight:600;vertical-align:middle;margin-left:.2em}
+.rsec-h p{margin:4px 0 0}
+.day + .day{margin-top:22px}
+.day-h{margin:0 0 10px;font-size:var(--step-small);font-weight:600;color:var(--muted);letter-spacing:.01em}
+.trows{display:grid;gap:6px}
+@media (min-width:900px){
+  #results .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:26px 20px;align-items:start}
+  #results .days .day + .day{margin-top:0}
+  #results .rsec > .trows{grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}
+}
+.trow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;background:var(--surface);border-radius:16px;padding:12px 14px;min-height:62px;text-decoration:none;color:var(--ink);-webkit-tap-highlight-color:transparent;transition:transform 160ms var(--ease-out),background 160ms var(--ease)}
+.trow:active{transform:scale(.98)}
+@media (hover:hover) and (pointer:fine){.trow:hover{background:var(--surface-2)}}
+.t-time{display:grid;font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums;letter-spacing:-.01em;min-width:3.1em}
+.t-time small{font-size:.72rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.t-main{display:grid;gap:2px;min-width:0}
+.t-main b{font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+.t-sub{font-size:var(--step-small);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-seats{font-size:.78rem;font-weight:600;white-space:nowrap;padding:5px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok)}
+.t-seats.full{background:var(--warn-soft);color:var(--warn)}
+.sig-matches{margin-bottom:28px}
+.sig-matches h3{margin:0 0 4px}
+.sm-block{margin-top:18px}
+.sm-block h4{margin:0 0 8px;font-size:var(--step-small);color:var(--muted);font-weight:600}
+.sig-matches .trow{background:var(--bg)}
+.demand-hint{margin:0;font-size:var(--step-small);color:var(--field);background:var(--paper);border-radius:14px;padding:10px 14px;grid-column:1 / -1}
+.demand-hint:empty{display:none}
+@media (max-width:760px){
+  .pop-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1 * var(--m));padding:0 var(--m) 2px}
+  .pop-chips::-webkit-scrollbar{display:none}
+  .pop-chips .chip{flex:none}
+  #dirChips{flex-wrap:nowrap}
+  #dirChips .chip{flex:1 1 auto;justify-content:center;padding:0 10px}
+}
 .more-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:24px}
 .trips{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:clamp(10px,1.4vw,20px)}
 .trip{background:var(--surface);padding:clamp(18px,2vw,26px);display:flex;flex-direction:column;gap:14px;text-decoration:none;transition:transform 180ms var(--ease-out),background 180ms var(--ease);position:relative}
@@ -850,7 +891,7 @@ const PUBLIC_COLS = "id,origin_city,dest_city,departure_at,flexibility,seats_tot
 let pubData = null, pubAt = 0, pubPromise = null, freshUntil = 0;
 function touchPublic(){ freshUntil = Date.now() + 90e3; pubData = null; pubPromise = null; }
 async function fetchPublic(){
-  if(Date.now() > freshUntil){
+  if(DEMO || Date.now() > freshUntil){
     try{
       const r = await fetch("/api/publico", { headers:{ accept:"application/json" } });
       if(r.ok){ const j = await r.json(); if(Array.isArray(j.trips)) return j; }
@@ -1197,6 +1238,50 @@ function statusPill(t){
 }
 function costLabel(t){ return t.cost_mode === "gratis" ? "Gratis" : "A pachas, se acuerda en el grupo"; }
 const costShort = t => t.cost_mode === "gratis" ? "Gratis" : "A pachas";
+/* Fila compacta (móvil y paneles): hora, trayecto, plazas */
+function nearText(t){ return t._near && (t._near.o || t._near.d) ? [t._near.o ? `Sale a ${t._near.o} km de ${t._near.oq}` : "", t._near.d ? `Llega a ${t._near.d} km de ${t._near.dq}` : ""].filter(Boolean).join(" · ") : ""; }
+function tripRow(t, withDate = false){
+  const free = t.seats_total - t.seats_taken, full = free <= 0 || t.status === "completo";
+  return `<a class="trow" href="#/viaje/${t.id}">
+    <span class="t-time">${withDate ? `<small>${esc(fmtDate(t.departure_at))}</small>` : ""}${fmtTime(t.departure_at)}</span>
+    <span class="t-main"><b>${esc(t.origin_city)} → ${esc(t.dest_city)}</b><span class="t-sub">${esc([nearText(t), costShort(t)].filter(Boolean).join(" · "))}</span></span>
+    <span class="t-seats${full ? " full" : ""}">${full ? "Completo" : free === 1 ? "1 plaza" : free + " plazas"}</span>
+  </a>`;
+}
+function dayLabel(iso){
+  const d = new Date(iso), k = x => x.toDateString();
+  const long = d.toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" });
+  if(k(d) === k(new Date())) return "Hoy · " + long;
+  if(k(d) === k(new Date(Date.now() + 864e5))) return "Mañana · " + long;
+  return long[0].toUpperCase() + long.slice(1);
+}
+function groupDays(rows, flat){
+  const item = t => tripRow(t);
+  const wrap = list => `<div class="trows">${list}</div>`;
+  if(flat) return wrap(rows.map(item).join(""));
+  const days = [];
+  rows.forEach(t => { const k = new Date(t.departure_at).toDateString(); let g = days.find(x => x.k === k); if(!g){ g = { k, t: t.departure_at, rows: [] }; days.push(g); } g.rows.push(t); });
+  return `<div class="days">${days.map(g => `<div class="day"><h4 class="day-h">${esc(dayLabel(g.t))}</h4>${wrap(g.rows.map(item).join(""))}</div>`).join("")}</div>`;
+}
+/* Viajes con plazas cuyo origen y destino están a menos de 35 km de un trayecto pedido */
+async function tripsFor(o, d, limit = 4){
+  await loadPlaces().catch(() => {});
+  const qo = findPlace(o), qd = findPlace(d);
+  const trips = await publicData().then(x => x.trips).catch(() => []);
+  const now = Date.now();
+  const ok = (name, lat, lng, q, qp) => name === q || (qp && lat != null && haversine({ lat, lng }, qp) <= 35);
+  return trips.filter(t => t.status !== "cancelado" && t.seats_total - t.seats_taken > 0 && new Date(t.departure_at).getTime() > now
+      && ok(t.origin_city, t.origin_lat, t.origin_lng, o, qo) && ok(t.dest_city, t.dest_lat, t.dest_lng, d, qd))
+    .sort((a, b) => new Date(a.departure_at) - new Date(b.departure_at)).slice(0, limit);
+}
+async function sigMatchesHtml(sigs){
+  const blocks = [];
+  for(const s of sigs){
+    const m = await tripsFor(s.origin_city, s.dest_city);
+    if(m.length) blocks.push(`<div class="sm-block"><h4>${esc(s.origin_city)} → ${esc(s.dest_city)}</h4><div class="trows">${m.map(t => tripRow(t, true)).join("")}</div></div>`);
+  }
+  return blocks.length ? `<div class="panel box sig-matches" id="sigMatchesBox"><h3>Viajes que te pueden servir</h3><p class="small muted">Para los trayectos que has pedido, con salida y llegada a menos de 35 km. Entra en uno para apuntarte.</p>${blocks.join("")}</div>` : "";
+}
 function tripCard(t, i=0){
   return `<a class="trip reveal" data-d="${Math.min(6, i%6)}" href="#/viaje/${t.id}">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">${statusPill(t)}${seatsViz(t)}</div>
@@ -1278,6 +1363,14 @@ function viewHome(p){
     <div class="results-head">
       <h2 id="resTitle">Próximos viajes</h2>
       <div class="seg" role="tablist"><button class="active" data-mode="list">Lista</button><button data-mode="map">Mapa</button></div>
+    </div>
+    <div class="dir-row">
+      <div class="chips" id="dirChips" role="group" aria-label="Sentido del viaje">
+        <button type="button" class="chip" data-dir="">Todos</button>
+        <button type="button" class="chip" data-dir="sur">Bajan al sur</button>
+        <button type="button" class="chip" data-dir="norte">Suben al norte</button>
+      </div>
+      <div id="popular"></div>
     </div>
     <div id="results"><div class="skeleton"></div></div>
     <div id="map" class="hidden"></div>
@@ -1363,11 +1456,17 @@ function viewHome(p){
   const full = () => $("#chipFull").getAttribute("aria-pressed")==="true";
   const near = () => $("#chipNear").getAttribute("aria-pressed")==="true";
   const placeVal = id => { const p = readPlace(id); return p && !p.invalid ? p.label : ""; };
+  let dir = ["sur","norte"].includes(p.dir) ? p.dir : "";
+  /* Sur: acaba en la mitad sur (Andalucía y La Mancha) bajando; norte: sale de ahí subiendo */
+  const dirOk = t => { if(!dir || t.origin_lat == null || t.dest_lat == null) return true;
+    return dir === "sur" ? (t.dest_lat < t.origin_lat - 0.25 && t.dest_lat < 39.3) : (t.dest_lat > t.origin_lat + 0.25 && t.origin_lat < 39.3); };
+  const markDir = () => document.querySelectorAll("#dirChips .chip").forEach(c => c.classList.toggle("on", c.dataset.dir === dir));
+  const setPlace = (id, label, lat, lng) => { const el = $("#"+id); el.value = label; el.dataset.label = label; if(lat != null){ el.dataset.lat = lat; el.dataset.lng = lng; } el.closest(".combo").querySelector(".combo-clear").classList.remove("hidden"); };
   const isoLocal = d => { const x = new Date(d.getTime()-d.getTimezoneOffset()*60e3); return x.toISOString().slice(0,10); };
   function syncUrl(){
     const q = new URLSearchParams();
     if(placeVal("fo")) q.set("o",placeVal("fo")); if(placeVal("fd")) q.set("d",placeVal("fd")); if($("#ff").value) q.set("f",$("#ff").value); if(!near()) q.set("n","0");
-    if($("#fs").value!=="1") q.set("s",$("#fs").value); if(gratis()) q.set("g","1"); if(full()) q.set("c","1"); if($("#fsort").value!=="salida") q.set("sort",$("#fsort").value);
+    if($("#fs").value!=="1") q.set("s",$("#fs").value); if(gratis()) q.set("g","1"); if(full()) q.set("c","1"); if($("#fsort").value!=="salida") q.set("sort",$("#fsort").value); if(dir) q.set("dir",dir);
     const str = q.toString(); history.replaceState(null,"","#/"+(str?"?"+str:""));
     $("#chipClear").classList.toggle("hidden", !str);
   }
@@ -1401,7 +1500,9 @@ function viewHome(p){
   let weekend = false;
   $("#chipGratis").onclick = () => { $("#chipGratis").setAttribute("aria-pressed", String(!gratis())); apply(); };
   $("#chipFull").onclick = () => { $("#chipFull").setAttribute("aria-pressed", String(!full())); apply(); };
-  $("#chipClear").onclick = () => { ["fo","fd"].forEach(id => { const el=$("#"+id); el.value=""; el.dataset.label=""; delete el.dataset.lat; delete el.dataset.lng; el.closest(".combo").querySelector(".combo-clear").classList.add("hidden"); }); $("#chipNear").setAttribute("aria-pressed","true"); $("#ff").value=""; $("#fs").value="1"; $("#fsort").value="salida"; $("#chipGratis").setAttribute("aria-pressed","false"); $("#chipFull").setAttribute("aria-pressed","false"); weekend=false; apply(); };
+  $("#chipClear").onclick = () => { ["fo","fd"].forEach(id => { const el=$("#"+id); el.value=""; el.dataset.label=""; delete el.dataset.lat; delete el.dataset.lng; el.closest(".combo").querySelector(".combo-clear").classList.add("hidden"); }); $("#chipNear").setAttribute("aria-pressed","true"); $("#ff").value=""; $("#fs").value="1"; $("#fsort").value="salida"; $("#chipGratis").setAttribute("aria-pressed","false"); $("#chipFull").setAttribute("aria-pressed","false"); weekend=false; dir=""; markDir(); apply(); };
+  document.querySelectorAll("#dirChips .chip").forEach(c => c.onclick = () => { dir = c.dataset.dir; markDir(); apply(); });
+  markDir();
   markDateChip(); $("#chipClear").classList.toggle("hidden", !location.hash.includes("?"));
   let mode = "list";
   document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
@@ -1409,13 +1510,32 @@ function viewHome(p){
     mode = b.dataset.mode; $("#results").classList.toggle("hidden", mode==="map"); $("#map").classList.toggle("hidden", mode!=="map");
     if(mode==="map") drawMap(lastResults);
   });
-  let lastResults = [], shown = 0;
-  const pageSize = () => window.innerWidth < 760 ? 5 : 8;
+  let lastResults = [], lastSections = [], expanded = {};
+  const cap = () => window.innerWidth < 760 ? 8 : 12;
   let wantedHtml = "";
-  function listHtml(rows){
-    const rest = rows.length - shown;
-    return `<div class="trips">${rows.slice(0, shown).map((t,i)=>tripCard(t,i)).join("")}</div>` + (rest > 0
-      ? `<div class="more-row"><button type="button" class="btn secondary" id="moreBtn">Ver ${Math.min(rest, 12)} viajes más</button><span class="small muted">Mostrando ${shown} de ${rows.length}</span></div>` : "") + wantedHtml;
+  function sectionsHtml(){
+    return lastSections.map(sec => {
+      const vis = expanded[sec.key] ? sec.rows : sec.rows.slice(0, cap()), rest = sec.rows.length - vis.length;
+      return `<section class="rsec">${sec.title ? `<div class="rsec-h"><h3>${esc(sec.title)} <span class="count">${sec.rows.length}</span></h3>${sec.sub ? `<p class="small muted">${esc(sec.sub)}</p>` : ""}</div>` : ""}
+        ${groupDays(vis, sec.flat)}
+        ${rest > 0 ? `<div class="more-row"><button type="button" class="btn secondary" data-more="${sec.key}">Ver ${rest} ${rest === 1 ? "viaje más" : "viajes más"}</button></div>` : ""}</section>`;
+    }).join("") + wantedHtml;
+  }
+  async function renderPopular(f){
+    const el = $("#popular"); if(!el) return;
+    if(f.origin || f.dest){ el.innerHTML = ""; return; }
+    const trips = await publicData().then(x => x.trips).catch(() => []);
+    const now = Date.now(), map = {};
+    trips.forEach(t => {
+      if(t.status === "cancelado" || t.seats_total - t.seats_taken <= 0 || new Date(t.departure_at).getTime() < now || !dirOk(t)) return;
+      const k = t.origin_city + "|" + t.dest_city; (map[k] = map[k] || { o: t.origin_city, d: t.dest_city, n: 0, t }).n++;
+    });
+    const top = Object.values(map).filter(r => r.n >= 2).sort((a, b) => b.n - a.n).slice(0, 6);
+    el.innerHTML = top.length ? `<div class="pop-chips" role="group" aria-label="Rutas con más viajes">${top.map((r, i) => `<button type="button" class="chip" data-pop="${i}">${esc(r.o)} → ${esc(r.d)} <b>${r.n}</b></button>`).join("")}</div>` : "";
+    el.querySelectorAll("[data-pop]").forEach(b => b.onclick = () => {
+      const r = top[+b.dataset.pop];
+      setPlace("fo", r.o, r.t.origin_lat, r.t.origin_lng); setPlace("fd", r.d, r.t.dest_lat, r.t.dest_lng); apply(true);
+    });
   }
   /* Trayectos que la gente ha pedido (firmas), filtrados como la búsqueda, para que quien conduce vea la demanda */
   async function wantedFor(f){
@@ -1434,11 +1554,10 @@ function viewHome(p){
     </div>`;
   }
   $("#results").addEventListener("click", e => {
-    if(!e.target.closest("#moreBtn")) return;
-    const from = shown; shown += 12;
-    $("#results").innerHTML = listHtml(lastResults);
+    const b = e.target.closest("[data-more]"); if(!b) return;
+    const key = b.dataset.more; expanded[key] = true;
+    $("#results").innerHTML = sectionsHtml();
     watchReveals();
-    $("#results").querySelectorAll(".trip")[from]?.focus({ preventScroll:true });
   });
   async function loadResults(){
     if($("#fo")?.value.trim() || $("#fd")?.value.trim()) await loadPlaces().catch(() => {});
@@ -1448,15 +1567,33 @@ function viewHome(p){
     $("#results").style.opacity = ".4";
     let rows = await api.listTrips(f);
     if(f.dates) rows = rows.filter(t => f.dates.includes(isoLocal(new Date(t.departure_at))));
+    rows = rows.filter(dirOk);
     lastResults = rows;
+    const flat = f.sort === "plazas", secs = [];
+    if(f.origin || f.dest){
+      const isNear = t => !!(t._near && (t._near.o || t._near.d));
+      const exact = rows.filter(t => !isNear(t)), nearR = rows.filter(isNear);
+      const route = `${f.origin || "Cualquier origen"} → ${f.dest || "cualquier destino"}`;
+      if(exact.length) secs.push({ key:"exact", title: route, rows: exact, flat });
+      if(nearR.length) secs.push({ key:"near", title: exact.length ? "Salen o llegan cerca" : `Cerca de ${route}`, sub: `A menos de ${f.near ? 35 : 3} km de lo que buscas.`, rows: nearR, flat });
+    } else if(rows.length) secs.push({ key:"all", title:"", rows, flat });
+    if(f.date || f.dates){
+      const seen = new Set(rows.map(t => t.id)), fAll = Object.assign({}, f, { date:"" }); delete fAll.dates;
+      const target = new Date((f.date || f.dates[0]) + "T12:00").getTime();
+      let other = (await api.listTrips(fAll)).filter(t => dirOk(t) && !seen.has(t.id));
+      other = other.sort((a, b) => Math.abs(new Date(a.departure_at) - target) - Math.abs(new Date(b.departure_at) - target)).slice(0, 8)
+        .sort((a, b) => new Date(a.departure_at) - new Date(b.departure_at));
+      if(other.length) secs.push({ key:"other", title: rows.length ? "Otros días" : "Ese día no hay, pero sí en fechas cercanas", sub: "Mismo trayecto, otros días.", rows: other, flat:false });
+    }
+    lastSections = secs; expanded = {};
+    renderPopular(f);
     const parts = []; if(f.origin) parts.push("desde "+f.origin); if(f.dest) parts.push("hasta "+f.dest);
     if(f.dates) parts.push("este fin de semana"); else if(f.date) parts.push("el "+new Date(f.date+"T12:00").toLocaleDateString("es-ES",{day:"numeric",month:"long"}));
     if(f.gratis) parts.push("gratis");
     $("#resTitle").innerHTML = (parts.length ? `Viajes ${parts.join(" ")}` : "Próximos viajes") + ` <span class="count">${rows.length}</span>`;
     $("#results").style.opacity = "";
-    shown = pageSize();
     wantedHtml = await wantedFor(f);
-    $("#results").innerHTML = rows.length ? listHtml(rows)
+    $("#results").innerHTML = secs.length ? sectionsHtml()
       : wantedHtml.replace('<div class="wanted">','<div class="wanted first">') + `<div class="empty"><h3>Todavía no hay viajes con esos criterios</h3><p>Prueba sin fecha o con una localidad cercana. Si vas a hacer tú ese trayecto, <a href="#/publicar">publícalo</a>: alguien lo está buscando.</p>${f.origin && f.dest ? `<p style="margin-top:18px"><a class="btn accent" href="#/transporte?o=${encodeURIComponent(f.origin)}&d=${encodeURIComponent(f.dest)}">Necesito este trayecto: firmar ${esc(f.origin)} → ${esc(f.dest)}</a></p>` : `<p><a href="#/transporte">Firma el trayecto que necesitas</a> para que se vea la falta de transporte.</p>`}</div>`;
     watchReveals();
     if(mode==="map") drawMap(rows);
@@ -1582,6 +1719,7 @@ async function viewPublish(editId, params = {}){
         <div class="form-grid">
           ${placeField("po", "Salgo de", v.origin_city || "Madrid", { required:true, placeholder:"Ej.: Madrid" })}
           ${placeField("pd", "Voy a", v.dest_city || "", { required:true, placeholder:"Ej.: Martos, Andújar, Sevilla…" })}
+          <p class="demand-hint full" id="demandHint" aria-live="polite"></p>
           <div class="field"><label for="pod">Zona o referencia de salida</label><input id="pod" maxlength="80" value="${esc(v.origin_detail||"")}" placeholder="Ej.: Atocha, Moncloa, Getafe centro"><span class="hint">Sin direcciones exactas; eso se concreta en el grupo.</span></div>
           <div class="field"><label for="pdd">Zona o referencia de llegada</label><input id="pdd" maxlength="80" value="${esc(v.dest_detail||"")}" placeholder="Ej.: Santa Justa, centro, barrio de Triana"></div>
           <div class="field full"><label for="pstops">Paradas posibles por el camino</label><input id="pstops" maxlength="140" value="${esc(v.stops||"")}" placeholder="Ej.: Puedo parar en Córdoba o en cualquier salida de la A-4"></div>
@@ -1621,7 +1759,20 @@ async function viewPublish(editId, params = {}){
     </form></div></section>`;
 
   const f = id => $("#"+id);
-  bindPlace("po"); bindPlace("pd");
+  const updateHint = async () => {
+    const el = f("demandHint"); if(!el) return;
+    const po = readPlace("po"), pd = readPlace("pd");
+    if(!po || !pd || po.invalid || pd.invalid || po.label === pd.label){ el.innerHTML = ""; return; }
+    const st = await api.demandStats().catch(() => null);
+    let n = 0;
+    (st && st.routes || []).forEach(r => {
+      const a = findPlace(r.origin_city), b = findPlace(r.dest_city);
+      if((r.origin_city === po.label || (a && haversine(a, po) <= 35)) && (r.dest_city === pd.label || (b && haversine(b, pd) <= 35))) n += r.total;
+    });
+    el.innerHTML = n ? `<b>${n === 1 ? "1 persona ha pedido" : n.toLocaleString("es-ES") + " personas han pedido"} este trayecto.</b> Si lo publicas, lo verán al buscar.` : "";
+  };
+  bindPlace("po", updateHint); bindPlace("pd", updateHint);
+  loadPlaces().then(updateHint).catch(() => {});
   if(v.origin_lat != null){ f("po").dataset.lat = v.origin_lat; f("po").dataset.lng = v.origin_lng; f("po").dataset.label = v.origin_city; }
   if(v.dest_lat != null){ f("pd").dataset.lat = v.dest_lat; f("pd").dataset.lng = v.dest_lng; f("pd").dataset.label = v.dest_city; }
   document.querySelectorAll("#costModes input").forEach(r => r.addEventListener("change", () => {
@@ -1945,6 +2096,7 @@ async function viewMine(){
     ${rd.length ? `<div class="trips">${rd.map(ridingCard).join("")}</div>` : `<div class="empty"><p>No estás apuntado a ningún viaje. <a href="#/">Busca uno</a>.</p></div>`}
     <h2 style="margin-top:40px">Conduzco</h2>
     ${dr.length ? `<div class="trips">${dr.map((t,i)=>`<div class="trip-wrap">${tripCard(t,i)}<div class="trip-actions"><a class="btn sm" href="#/editar/${t.id}">Editar</a><a class="btn sm secondary" href="#/viaje/${t.id}">Ver pasajeros</a></div></div>`).join("")}</div>` : `<div class="empty"><p>Todavía no has publicado ningún viaje. <a href="#/publicar">Publica tus plazas libres</a>.</p></div>`}
+    <div id="mineMatches" style="margin-top:40px"></div>
     <h2 style="margin-top:40px">Mis firmas</h2>
     ${sigs.length ? `<ul class="sig-list">${sigs.map(x=>`<li><span><b>${esc(x.origin_city)} → ${esc(x.dest_city)}</b> <span class="muted small">${NEED[x.need]||""}</span></span><button class="btn sm secondary" data-unsign="${esc(x.origin_city)}|${esc(x.dest_city)}">Retirar firma</button></li>`).join("")}</ul>` : `<div class="empty"><p>No has firmado ningún trayecto. Si te falta cómo viajar, <a href="#/transporte">déjalo por escrito</a>.</p></div>`}
     <div class="panel box" style="margin-top:56px">
@@ -1971,6 +2123,7 @@ async function viewMine(){
     $("#mNo").onclick = closeModal;
     $("#mYes").onclick = async () => { closeModal(); try{ await api.deleteAccount(); toast("Cuenta eliminada"); location.hash = "#/"; }catch(err){ toast(err.message, "err"); } };
   };
+  if(sigs.length){ const html = await sigMatchesHtml(sigs); if($("#mineMatches")) $("#mineMatches").innerHTML = html; }
 }
 
 /* ---------------- Vista: pide más transporte ---------------- */
@@ -1999,6 +2152,7 @@ async function viewTransport(p){
         <span>${stats.people===1?"persona ha firmado":"personas han firmado"} · ${(stats.signatures||0).toLocaleString("es-ES")} trayectos pedidos</span>
       </div>
     </div>
+    <div id="sigMatches"></div>
     <div class="detail transport-body">
       <div>
         <h2 class="h-q">Trayectos más pedidos</h2>
@@ -2043,12 +2197,16 @@ async function viewTransport(p){
     if(!me){ try{ sessionStorage.setItem("thh_pending_sign", JSON.stringify({ o, d, need })); }catch(_){} return api.signIn(); }
     $("#signBtn").disabled = true;
     try{ await api.sign(o, d, need); toast(mineSet.has(o+"|"+d) ? "Firma actualizada" : "Gracias. Tu firma cuenta.", "ok"); }catch(err){ toast(err.message, "err"); }
-    viewTransport({ o, d });
+    viewTransport({ o, d, just: 1 });
   };
   document.querySelectorAll("[data-unsign]").forEach(b => b.onclick = async () => {
     const [o, d] = b.dataset.unsign.split("|");
     try{ await api.unsign(o, d); toast("Firma retirada"); }catch(err){ toast(err.message, "err"); } viewTransport({});
   });
+  if(sigs.length){
+    const html = await sigMatchesHtml(sigs);
+    if($("#sigMatches")){ $("#sigMatches").innerHTML = html; if(html && p.just) $("#sigMatches").scrollIntoView({ behavior:"smooth", block:"start" }); }
+  }
 }
 async function resumePendingSign(){
   if(!me) return;
