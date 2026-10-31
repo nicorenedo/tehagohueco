@@ -149,9 +149,9 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .hero h1 .line span{display:block;transform:translateY(110%);animation:rise 900ms var(--ease-out) forwards}
 .hero h1 .line:nth-child(2) span{animation-delay:110ms;color:var(--accent)}
 .hero .foot{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:24px;margin-top:32px;opacity:0;animation:fade 700ms var(--ease-out) 650ms forwards}
-.hero .impact{margin:0 0 18px;font-size:var(--step-small);color:var(--field-soft);max-width:44ch}
-.hero .impact:empty{display:none}
-.hero .impact b{color:var(--accent);font-weight:700;font-size:1.15em}
+.hero .lead .impact{margin:0;font-size:var(--step-small);line-height:1.45;color:var(--field-soft);max-width:44ch}
+.hero .lead .impact:empty{display:none}
+.hero .lead .impact b{color:var(--accent);font-weight:700;font-size:1.2em}
 .hero .memorial{font-size:var(--step-small);color:var(--field-soft);max-width:34ch;margin:0}
 .hero .memorial b{display:block;color:var(--field-ink);font-weight:500;font-size:var(--step-body)}
 .hero .lead{justify-self:end;text-align:right;max-width:30ch;display:grid;gap:18px;justify-items:end}
@@ -159,12 +159,14 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 @keyframes rise{to{transform:none}}
 @keyframes fade{to{opacity:1}}
 @media (max-width:760px){
-  .hero{padding-top:18px;padding-bottom:24px}
+  .hero{padding-top:16px;padding-bottom:20px}
   .hero .topline nav a.hide-m{display:none}
-  .hero h1{font-size:23vw;margin-top:10vh}
-  .hero .foot{grid-template-columns:1fr;gap:28px;margin-top:40px}
-  .hero .lead{justify-self:start;text-align:left;justify-items:start;max-width:none}
-  .hero .memorial{order:2}
+  .hero h1{font-size:clamp(64px,min(23vw,14svh),130px);margin-top:clamp(16px,6svh,72px)}
+  .hero .foot{grid-template-columns:1fr;gap:clamp(14px,2.6svh,28px);margin-top:clamp(16px,3svh,40px)}
+  .hero .lead{justify-self:start;text-align:left;justify-items:start;max-width:none;gap:clamp(10px,1.8svh,18px)}
+  .hero .lead p{font-size:clamp(.98rem,2.3svh,1.12rem);line-height:1.38}
+  .hero .memorial{order:2;font-size:.78rem}
+  .hero .memorial b{font-size:.92rem}
 }
 
 /* ---------- Buscador (al pliegue) ---------- */
@@ -189,6 +191,12 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .chip.select{padding-right:8px;cursor:default}
 .chip.select span{color:var(--muted)}
 .chip.select select{border:0;background:var(--bg);border-radius:999px;height:30px;padding:0 30px 0 12px;font-size:var(--step-small);font-weight:500;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%231f1917' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
+@media (max-width:760px){
+  .filters{gap:10px;flex-wrap:nowrap;flex-direction:column;align-items:stretch}
+  .filters .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1 * var(--m));padding:0 var(--m) 2px}
+  .filters .chips::-webkit-scrollbar{display:none}
+  .filters .chip{flex:none}
+}
 .chip.clear{background:transparent;text-decoration:underline;text-underline-offset:3px;color:var(--muted)}
 @media (hover:hover) and (pointer:fine){.chip:not(.on):not([aria-pressed="true"]):not(.select):hover{background:var(--surface-2)}.chip.clear:hover{background:transparent;color:var(--ink)}}
 .results-head .count{display:inline-grid;place-items:center;min-width:1.6em;height:1.6em;padding:0 .4em;border-radius:999px;background:var(--surface);font-size:.5em;font-weight:600;vertical-align:middle;margin-left:.3em;letter-spacing:0}
@@ -336,16 +344,32 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .faq .q.head{color:var(--muted);font-weight:500}
 .faq .a{grid-column:8/13;max-width:42ch;margin:0;font-size:var(--step-body);line-height:1.55}
 .faq .a a{text-decoration-thickness:1px;text-underline-offset:3px}
-@media (max-width:760px){.faq .row{display:block;margin-bottom:56px}.faq .q{font-size:1.5rem}.faq .a{margin-top:12px}}
+.acc-btn{all:unset;display:block;cursor:default}
+@media (min-width:761px){.acc-btn{pointer-events:none}}
+@media (max-width:760px){
+  .faq .row{display:block;margin-bottom:56px}
+  .faq .q{font-size:1.5rem}
+  .faq .a{margin-top:12px}
+  .faq .row.acc{margin-bottom:8px;background:var(--surface);border-radius:18px;padding:0}
+  .faq .row.acc .q{font-size:1.05rem;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+  .faq .row.acc .q{display:block;width:100%}
+  .faq .acc-btn{cursor:pointer;padding:16px 46px 16px 18px;position:relative;width:100%;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  .faq .acc-btn::after{content:"+";position:absolute;right:18px;top:13px;font-size:1.4rem;line-height:1;font-weight:400;color:var(--muted);transition:transform 200ms var(--ease-out)}
+  .faq .acc-btn[aria-expanded="true"]::after{transform:rotate(45deg)}
+  .faq .acc-btn:focus-visible{outline:2px solid var(--ink);outline-offset:-2px;border-radius:18px}
+  .faq .row.acc .a{display:none;margin:0;padding:0 18px 16px;font-size:var(--step-small)}
+  .faq .row.acc.open .a{display:block}
+  .faq .row:first-child{margin-bottom:20px}
+}
 /* Cierre: ¿conduces o viajas? */
 .cta{min-height:100svh;background:var(--ink);color:var(--bg);display:grid;grid-template-rows:auto 1fr auto;padding:32px var(--m) 24px;text-align:center}
 .cta h2{font-size:clamp(72px,11vw,168px);line-height:1;letter-spacing:-.045em;margin:0;font-weight:700}
 .cta .mid{display:grid;place-content:center;gap:16px;padding:40px 0}
 .cta .choice{display:flex;align-items:center;justify-content:center;gap:24px}
-.cta .choice .btn{border-radius:0;min-width:200px;height:56px;font-size:1.125rem}
+.cta .choice .btn{min-width:200px;height:56px;font-size:1.125rem}
 .cta .choice .or{color:var(--soft);font-size:1.125rem}
 .cta .after{color:var(--soft);font-size:var(--step-body);margin:0;max-width:none}
-@media (max-width:640px){.cta h2{font-size:18vw}.cta .choice{flex-direction:column;gap:12px}.cta .choice .btn{width:72%}}
+@media (max-width:640px){.cta{min-height:0;padding:56px var(--m) 48px}.cta h2{font-size:15vw}.cta .mid{padding:28px 0}.cta .choice{flex-direction:column;gap:12px}.cta .choice .btn{width:80%}}
 /* Pie */
 footer{background:var(--field);color:var(--field-ink);min-height:100svh;display:grid;grid-template-rows:auto 1fr auto;padding:40px var(--m) 20px;position:sticky;bottom:0;z-index:0}
 main{position:relative;z-index:1;background:var(--bg)}
@@ -1408,12 +1432,6 @@ function viewHome(p){
     </div>
   </section>
 
-  <section class="poster" aria-labelledby="posterTitle">
-    <h2 id="posterTitle">Destinos del corredor</h2>
-    <p class="intro reveal">Viajes publicados desde Madrid hacia cada destino en los próximos días. Toca uno para verlos.</p>
-    <ol id="posterList">${DESTINOS.map((d,i)=>`<li class="reveal" data-d="${Math.min(6,i)}"><a href="#/?o=Madrid&d=${encodeURIComponent(d)}" data-dest="${esc(d)}"><span>${esc(d)}</span><span class="n">…</span></a></li>`).join("")}</ol>
-  </section>
-
   <section class="demand" aria-labelledby="demandTitle">
     <div class="grid">
       <div class="dm-text">
@@ -1431,13 +1449,13 @@ function viewHome(p){
 
   <section class="section faq" aria-labelledby="faqTitle" style="padding-top:var(--gap)">
     <div class="row"><p class="q head reveal" id="faqTitle">Lo que suele preguntarse</p></div>
-    <div class="row"><p class="q reveal">¿Cuánto se paga?</p><p class="a reveal" data-d="1">Cada viaje es gratis o a pachas. Si es a pachas, los gastos reales del trayecto (combustible y peajes) se reparten entre todos los que vais en el coche, y cómo y cuánto lo acordáis en el grupo privado del viaje. La web no fija precios, no cobra nada y no gestiona pagos.</p></div>
-    <div class="row"><p class="q reveal">¿Cómo contacto sin dar mi teléfono?</p><p class="a reveal" data-d="1">Al apuntarte entras en el grupo privado del viaje, que solo ven el conductor y los pasajeros apuntados. Allí acordáis el punto de encuentro y la hora. Si queréis pasaros el teléfono, lo decidís vosotros; la web no lo pide ni lo guarda.</p></div>
-    <div class="row"><p class="q reveal">¿Qué pasa cuando se llenan las plazas?</p><p class="a reveal" data-d="1">El viaje se cierra solo y deja de admitir inscripciones. Si alguien se desapunta, vuelve a abrirse. Por eso conviene desapuntarse en cuanto cambien tus planes: liberas el sitio para otra persona.</p></div>
-    <div class="row"><p class="q reveal">¿Y si me apunto y luego no puedo ir?</p><p class="a reveal" data-d="1">Pulsa "Ya no viajo" y tu plaza queda libre al momento. Para que no queden huecos fantasma, 48 horas antes de la salida cada pasajero tiene que confirmar que viaja; si a 12 horas no lo ha hecho, la plaza se libera sola. El conductor también puede quitar del viaje a quien no responda.</p></div>
-    <div class="row"><p class="q reveal">¿Por qué al entrar con Google aparece una dirección rara?</p><p class="a reveal" data-d="1">Google muestra la dirección de Supabase, el servicio con servidores en la Unión Europea donde se guardan los datos de la web (algo como "dbmqy….supabase.co"). Es normal en webs hechas con Supabase: el inicio de sesión lo hace Google directamente, y ni la web ni Supabase ven tu contraseña.</p></div>
-    <div class="row"><p class="q reveal">¿Quién verifica a los conductores?</p><p class="a reveal" data-d="1">Nadie más allá del inicio de sesión con Google, que evita perfiles anónimos. Te Hago Hueco no comprueba carnés ni vehículos y no es parte del acuerdo entre viajeros. Aplica el sentido común: comparte tu plan con alguien de confianza y no subas si algo no te cuadra.</p></div>
-    <div class="row"><p class="q reveal">¿Hasta cuándo estará activa?</p><p class="a reveal" data-d="1">Mientras la alta velocidad Madrid–Andalucía siga interrumpida y haya gente que la necesite. Después se cerrará y se borrarán todos los datos. Los viajes caducan a los 30 días de su salida.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Cuánto se paga?</button></p><p class="a reveal" data-d="1">Cada viaje es gratis o a pachas. Si es a pachas, los gastos reales del trayecto (combustible y peajes) se reparten entre todos los que vais en el coche, y cómo y cuánto lo acordáis en el grupo privado del viaje. La web no fija precios, no cobra nada y no gestiona pagos.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Cómo contacto sin dar mi teléfono?</button></p><p class="a reveal" data-d="1">Al apuntarte entras en el grupo privado del viaje, que solo ven el conductor y los pasajeros apuntados. Allí acordáis el punto de encuentro y la hora. Si queréis pasaros el teléfono, lo decidís vosotros; la web no lo pide ni lo guarda.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Qué pasa cuando se llenan las plazas?</button></p><p class="a reveal" data-d="1">El viaje se cierra solo y deja de admitir inscripciones. Si alguien se desapunta, vuelve a abrirse. Por eso conviene desapuntarse en cuanto cambien tus planes: liberas el sitio para otra persona.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Y si me apunto y luego no puedo ir?</button></p><p class="a reveal" data-d="1">Pulsa "Ya no viajo" y tu plaza queda libre al momento. Para que no queden huecos fantasma, 48 horas antes de la salida cada pasajero tiene que confirmar que viaja; si a 12 horas no lo ha hecho, la plaza se libera sola. El conductor también puede quitar del viaje a quien no responda.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Por qué al entrar con Google aparece una dirección rara?</button></p><p class="a reveal" data-d="1">Google muestra la dirección de Supabase, el servicio con servidores en la Unión Europea donde se guardan los datos de la web (algo como "dbmqy….supabase.co"). Es normal en webs hechas con Supabase: el inicio de sesión lo hace Google directamente, y ni la web ni Supabase ven tu contraseña.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Quién verifica a los conductores?</button></p><p class="a reveal" data-d="1">Nadie más allá del inicio de sesión con Google, que evita perfiles anónimos. Te Hago Hueco no comprueba carnés ni vehículos y no es parte del acuerdo entre viajeros. Aplica el sentido común: comparte tu plan con alguien de confianza y no subas si algo no te cuadra.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Hasta cuándo estará activa?</button></p><p class="a reveal" data-d="1">Mientras la alta velocidad Madrid–Andalucía siga interrumpida y haya gente que la necesite. Después se cerrará y se borrarán todos los datos. Los viajes caducan a los 30 días de su salida.</p></div>
   </section>
 
   <section class="cta" aria-labelledby="ctaTitle">
@@ -1623,13 +1641,6 @@ function viewHome(p){
     });
     if(bounds.length) mapInst.fitBounds(bounds, { padding:[30,30] });
   }
-  async function loadPoster(){
-    const counts = await api.destCounts(DESTINOS);
-    document.querySelectorAll("#posterList a").forEach(a => {
-      const n = counts[a.dataset.dest] || 0;
-      a.querySelector(".n").textContent = n === 0 ? "sin viajes aún" : n === 1 ? "1 viaje publicado" : `${n} viajes publicados`;
-    });
-  }
   function showNudge(st){
     let off = false; try{ off = sessionStorage.getItem("thh_nudge_off") === "1"; }catch(_){}
     if(off || !$("#nudge")) return;
@@ -1665,7 +1676,11 @@ function viewHome(p){
       $("#dueBanner").innerHTML = `<div class="notice">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar":`Tienes ${due.length} viajes por confirmar`}.</b> Si no confirmas 12 horas antes de salir, la plaza se libera. <a href="#/mis-viajes">Confirmar ahora</a></div></div>`;
     }
   }
-  loadResults(); loadPoster(); loadDemand(); loadImpact(); loadDue(); watchReveals();
+  loadResults(); loadDemand(); loadImpact(); loadDue(); watchReveals();
+  document.querySelectorAll(".faq .acc-btn").forEach(b => b.onclick = () => {
+    const row = b.closest(".row"), open = !row.classList.contains("open");
+    row.classList.toggle("open", open); b.setAttribute("aria-expanded", String(open));
+  });
   cleanup = () => { if(mapInst){ mapInst.remove(); mapInst = null; } document.body.classList.remove("home"); };
 }
 
