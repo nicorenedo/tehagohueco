@@ -588,6 +588,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .alert-opt{margin:0 0 14px;color:var(--muted)}
 .alert-opt input{margin-top:3px}
 .alert-on{margin:0 0 14px}
+.thanks-opt{margin:0 0 6px}
 </style>
 </head>
 <body>
@@ -1865,7 +1866,8 @@ async function viewPublish(editId, params = {}){
         <label class="check"><input type="checkbox" id="c2" required><span>Entiendo que ${esc(CFG.siteName)} solo pone en contacto a personas y no es parte del acuerdo entre conductor y pasajeros. He leído las <a href="#/legal/condiciones" target="_blank">condiciones de uso</a>.</span></label>
         <label class="check"><input type="checkbox" id="c3" required><span>Si no puedo hacer el viaje, lo cancelaré en la web y avisaré en el grupo con la mayor antelación posible.</span></label>
       </fieldset>`}
-      ${editing ? "" : `<p class="small muted" style="margin:0 0 14px">Te avisaremos por correo cuando alguien se apunte y, después del viaje, te daremos las gracias. Puedes desactivar estos avisos en Mis viajes.</p>`}
+      <label class="check small thanks-opt"><input type="checkbox" id="pthanks" ${v.thanks_optin ? "checked" : ""}><span>Quiero recibir un correo de agradecimiento después del viaje.</span></label>
+      <p class="small muted" style="margin:0 0 14px">Te avisaremos por correo de lo importante de tu viaje, como quién se apunta. Puedes desactivarlo en Mis viajes.</p>
       <div id="formErr" class="notice danger hidden" style="margin-bottom:14px"></div>
       <div class="form-actions">
         ${editing ? `<a class="btn secondary" href="#/viaje/${v.id}">Descartar cambios</a>` : ""}
@@ -1921,7 +1923,8 @@ async function viewPublish(editId, params = {}){
       stops: f("pstops").value.trim() || null, departure_at: when.toISOString(), flexibility: f("pflex").value,
       seats_total: Number(f("pseats").value), vehicle: f("pveh").value.trim() || null,
       cost_mode: document.querySelector("#costModes input:checked").value,
-      distance_km: roadKmPts(po, pd), description: f("pdesc").value.trim()
+      distance_km: roadKmPts(po, pd), description: f("pdesc").value.trim(),
+      thanks_optin: !!f("pthanks")?.checked
     };
     if(!me){
       try{ sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ data, at: Date.now() })); }catch(_){}
@@ -2251,7 +2254,7 @@ async function viewMine(){
     ${prefs ? `<div class="panel box" id="avisos" style="margin-top:56px">
       <h3>Avisos por correo</h3>
       <p class="muted small">Te escribimos a ${esc(me.email || "tu correo de Google")} desde avisos@tehagohueco.es. Como mucho tres al día, salvo cancelaciones de última hora, y nunca publicidad.</p>
-      <label class="check"><input type="checkbox" id="prefTrips" ${prefs.trip_updates ? "checked" : ""}><span><b>Avisos de mis viajes.</b> Si cancelan o cambian un viaje en el que vas, si te quitan de un viaje y el recordatorio para confirmar. Si conduces, quién se apunta o se va y un agradecimiento después del viaje.</span></label>
+      <label class="check"><input type="checkbox" id="prefTrips" ${prefs.trip_updates ? "checked" : ""}><span><b>Avisos de mis viajes.</b> Si cancelan o cambian un viaje en el que vas, si te quitan de un viaje y el recordatorio para confirmar. Si conduces, quién se apunta o se va.</span></label>
       <label class="check"><input type="checkbox" id="prefAlerts" ${prefs.route_alerts ? "checked" : ""}><span><b>Alertas de viajes nuevos</b> en las rutas que has pedido en "Pide transporte". Como mucho una al día. ${prefs.route_alerts && prefs.route_alerts_until ? `Activas hasta el ${esc(fmtDayShort(prefs.route_alerts_until))}; se apagan solas.` : "Se apagan solas a los 15 días."}${!sigs.length ? ` Para recibirlas, <a href="#/transporte">firma una ruta</a>.` : ""}</span></label>
     </div>` : ""}
     <div class="panel box" style="margin-top:${prefs ? "16px" : "56px"}">
@@ -2471,8 +2474,9 @@ function viewLegal(which){
         <li>Crear y gestionar tu cuenta, publicar viajes, apuntarte a ellos y comunicarte en el grupo: <strong>ejecución del servicio que solicitas</strong> (art. 6.1.b RGPD).</li>
         <li>Garantizar la seguridad del servicio y prevenir abusos: <strong>interés legítimo</strong> (art. 6.1.f RGPD).</li>
         <li>Atender reportes y comunicaciones: <strong>interés legítimo y consentimiento</strong>.</li>
-        <li>Enviarte avisos por correo sobre los viajes en los que participas (cancelaciones, cambios, confirmaciones, pasajeros y, si conduces, un agradecimiento después del viaje): <strong>ejecución del servicio</strong> (art. 6.1.b RGPD). Puedes desactivarlos en "Mis viajes" o con el enlace de cada correo.</li>
+        <li>Enviarte avisos por correo sobre los viajes en los que participas (cancelaciones, cambios, confirmaciones y pasajeros): <strong>ejecución del servicio</strong> (art. 6.1.b RGPD). Puedes desactivarlos en "Mis viajes" o con el enlace de cada correo.</li>
         <li>Enviarte alertas de viajes nuevos en las rutas que has pedido: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al firmar. Duran 15 días y puedes retirarlas en cualquier momento.</li>
+        <li>Enviarte un correo de agradecimiento después de un viaje que conduces: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al publicarlo.</li>
       </ul>
       <p>No utilizamos tus datos con fines publicitarios, no elaboramos perfiles y no los cedemos a terceros con fines comerciales.</p>
       <h2>Encargados y transferencias</h2>
