@@ -261,8 +261,12 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .t-main{display:grid;gap:2px;min-width:0}
 .t-main b{font-weight:600;line-height:1.25;overflow-wrap:anywhere}
 .t-sub{font-size:var(--step-small);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-seats{font-size:.78rem;font-weight:600;white-space:nowrap;padding:5px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok)}
-.t-seats.full{background:var(--warn-soft);color:var(--warn)}
+.t-seats{display:grid;justify-items:end;gap:5px}
+.t-seats .seats-viz{gap:4px}
+.t-seats .seats-viz i{width:11px;height:16px;background:var(--paper)}
+.t-seats .seats-viz i.free{background:var(--ok)}
+.t-seats-txt{font-size:.74rem;font-weight:600;white-space:nowrap;color:var(--ok)}
+.t-seats.full .t-seats-txt{color:var(--warn)}
 .sig-matches{margin-bottom:28px}
 .sig-matches h3{margin:0 0 4px}
 .sm-block{margin-top:18px}
@@ -1275,7 +1279,7 @@ function tripRow(t, withDate = false){
   return `<a class="trow" href="#/viaje/${t.id}">
     <span class="t-time">${withDate ? `<small>${esc(fmtDate(t.departure_at))}</small>` : ""}${fmtTime(t.departure_at)}</span>
     <span class="t-main"><b>${esc(t.origin_city)} → ${esc(t.dest_city)}</b><span class="t-sub">${esc([nearText(t), costShort(t)].filter(Boolean).join(" · "))}</span></span>
-    <span class="t-seats${full ? " full" : ""}">${full ? "Completo" : free === 1 ? "1 plaza" : free + " plazas"}</span>
+    <span class="t-seats${full ? " full" : ""}">${seatsViz(t)}<span class="t-seats-txt">${full ? "Completo" : free === 1 ? "1 libre" : free + " libres"}</span></span>
   </a>`;
 }
 function dayLabel(iso){
