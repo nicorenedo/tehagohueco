@@ -128,6 +128,8 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
   .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;padding:4px 2px;border-radius:14px;text-decoration:none;color:#b7aea5;font-size:11px;font-weight:600;line-height:1.1;text-align:center;-webkit-tap-highlight-color:transparent;transition:color 160ms,transform 160ms var(--ease-out)}
   .tabbar a svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   .tabbar a.active{color:var(--accent)}
+  .tabbar a{position:relative}
+  .tabbar a .badge{position:absolute;top:3px;left:calc(50% + 5px);margin:0}
   .tabbar a:active{transform:scale(.94)}
   body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
   .toast-wrap{bottom:calc(82px + env(safe-area-inset-bottom)) !important}
@@ -577,6 +579,12 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .demo-badge{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;background:var(--accent);color:var(--accent-ink);padding:7px 14px;font-size:var(--step-small);font-weight:600}
 @media (max-width:760px){.demo-badge{left:auto;right:12px;top:auto;bottom:calc(82px + env(safe-area-inset-bottom));transform:none}}
+  a[data-nav] .badge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 5px;margin-left:6px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:700;line-height:1;vertical-align:1px;font-variant-numeric:tabular-nums}
+.share-box{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;margin-bottom:16px;border-radius:16px;background:color-mix(in oklab, var(--accent) 14%, transparent)}
+.share-box .btn{flex:none}
+.btn svg{vertical-align:-3px}
+.back-link{margin:14px 0 0}
+@media (max-width:520px){.share-box{flex-direction:column;align-items:stretch}.share-box .btn{width:100%;justify-content:center}}
 </style>
 </head>
 <body>
@@ -836,6 +844,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const fmtDate = iso => new Date(iso).toLocaleDateString("es-ES", { weekday:"short", day:"numeric", month:"short" });
 const fmtDateLong = iso => new Date(iso).toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
 const fmtTime = iso => new Date(iso).toLocaleTimeString("es-ES", { hour:"2-digit", minute:"2-digit" });
+const fmtDayShort = iso => new Date(iso).toLocaleDateString("es-ES", { weekday:"long", day:"numeric", month:"long" }).replace(",", "");
 const fmtEur = n => new Intl.NumberFormat("es-ES", { style:"currency", currency:"EUR", maximumFractionDigits:0 }).format(n);
 const initials = name => (name||"?").split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase();
 function shortName(full){
@@ -854,6 +863,7 @@ function modal(html){
   return root;
 }
 function closeModal(){ $("#modalRoot").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && $("#modalRoot")?.innerHTML) closeModal(); });
 const ICON = {
   cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -1102,6 +1112,12 @@ const api = {
       .subscribe();
     return () => sb.removeChannel(ch);
   },
+  async unconfirmedTrips(ids){
+    if(!ids.length) return 0;
+    if(DEMO) return ids.filter(id => (demoState.members[id]||[]).some(m=>!m.confirmed_at)).length;
+    const { data } = await sb.from("trip_members").select("trip_id").in("trip_id", ids).is("confirmed_at", null);
+    return new Set((data||[]).map(r=>r.trip_id)).size;
+  },
   async confirm(tripId){
     if(DEMO){ const m = (demoState.members[tripId]||[]).find(x=>x.user_id===me.id); if(m && !m.confirmed_at){ m.confirmed_at = new Date().toISOString(); api._sysMsg(tripId, `${myProfile.display_name} ha confirmado que viaja`); } return; }
     const { error } = await sb.rpc("confirm_trip", { p_trip_id: tripId });
@@ -1222,6 +1238,30 @@ function setNav(key){
     if(on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
 }
+/* Aviso en "Mis viajes": viajes que esperan confirmación (como pasajero) o con gente sin confirmar (como conductor).
+   Como mucho una consulta por minuto. */
+let badgeAt = 0;
+async function updateBadge(force){
+  if(!me){ setBadge(0); return; }
+  if(!force && Date.now() - badgeAt < 60e3) return;
+  badgeAt = Date.now();
+  try{
+    const { driving, riding } = await api.myTrips();
+    const live = t => t.status !== "cancelado" && inConfirmWindow(t);
+    let n = riding.filter(t => live(t) && !t.my_confirmed_at).length;
+    n += await api.unconfirmedTrips(driving.filter(t => live(t) && t.seats_taken > 0).map(t => t.id));
+    setBadge(n);
+  }catch(_){}
+}
+function setBadge(n){
+  document.querySelectorAll('a[data-nav="mis-viajes"]').forEach(a => {
+    let b = a.querySelector(".badge");
+    if(!n){ if(b) b.remove(); a.removeAttribute("aria-label"); return; }
+    if(!b){ b = document.createElement("span"); b.className = "badge"; b.setAttribute("aria-hidden","true"); a.appendChild(b); }
+    b.textContent = n > 9 ? "9+" : String(n);
+    a.setAttribute("aria-label", `Mis viajes, ${n} ${n===1?"pendiente de confirmar":"pendientes de confirmar"}`);
+  });
+}
 let heroObs = null;
 let firstRoute = true, lastRouteHash = "#/", pendingAnchor = null;
 async function route(){
@@ -1234,6 +1274,7 @@ async function route(){
     pendingAnchor = anchor;
   }
   if(cleanup){ cleanup(); cleanup = null; }
+  closeModal();
   if(!firstRoute && !matchMedia("(prefers-reduced-motion: reduce)").matches){ app.classList.add("leaving"); await new Promise(r => setTimeout(r, 150)); requestAnimationFrame(() => app.classList.remove("leaving")); }
   firstRoute = false;
   const CLEAN = { "/privacidad":"/legal/privacidad", "/condiciones":"/legal/condiciones", "/aviso-legal":"/legal/aviso" };
@@ -1245,6 +1286,7 @@ async function route(){
   if(heroObs){ heroObs.disconnect(); heroObs = null; }
   document.body.classList.remove("home", "past-hero");
   lastRouteHash = location.hash || "#/";
+  updateBadge(path === "/mis-viajes");
   /* Estadísticas: solo se cuenta la entrada (lo hace el script de Vercel). No contamos cambios de sección
      para no gastar peticiones del plan gratuito durante los picos. */
   if(path === "/buscar"){ pendingAnchor = "buscar"; history.replaceState(null, "", "#/"); lastRouteHash = "#/"; }
@@ -1267,6 +1309,7 @@ function seatsViz(t){ let s=""; for(let i=0;i<t.seats_total;i++) s += `<i class=
 function statusPill(t){
   const free = t.seats_total - t.seats_taken;
   if(t.status === "cancelado") return `<span class="pill danger">Cancelado</span>`;
+  if(t.blocked) return `<span class="pill danger">En revisión</span>`;
   if(t.status === "completo" || free <= 0) return `<span class="pill warn">Completo</span>`;
   return `<span class="pill ok">${free} ${free===1?"plaza libre":"plazas libres"}</span>`;
 }
@@ -1459,7 +1502,7 @@ function viewHome(p){
     <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Cuánto se paga?</button></p><p class="a reveal" data-d="1">Cada viaje es gratis o a pachas. Si es a pachas, los gastos reales del trayecto (combustible y peajes) se reparten entre todos los que vais en el coche, y cómo y cuánto lo acordáis en el grupo privado del viaje. La web no fija precios, no cobra nada y no gestiona pagos.</p></div>
     <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Cómo contacto sin dar mi teléfono?</button></p><p class="a reveal" data-d="1">Al apuntarte entras en el grupo privado del viaje, que solo ven el conductor y los pasajeros apuntados. Allí acordáis el punto de encuentro y la hora. Si queréis pasaros el teléfono, lo decidís vosotros; la web no lo pide ni lo guarda.</p></div>
     <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Qué pasa cuando se llenan las plazas?</button></p><p class="a reveal" data-d="1">El viaje se cierra solo y deja de admitir inscripciones. Si alguien se desapunta, vuelve a abrirse. Por eso conviene desapuntarse en cuanto cambien tus planes: liberas el sitio para otra persona.</p></div>
-    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Y si me apunto y luego no puedo ir?</button></p><p class="a reveal" data-d="1">Pulsa "Ya no viajo" y tu plaza queda libre al momento. Para que no queden huecos fantasma, 48 horas antes de la salida cada pasajero tiene que confirmar que viaja; si a 12 horas no lo ha hecho, la plaza se libera sola. El conductor también puede quitar del viaje a quien no responda.</p></div>
+    <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Y si me apunto y luego no puedo ir?</button></p><p class="a reveal" data-d="1">Pulsa "Ya no viajo" y tu plaza queda libre al momento. Para que no queden huecos fantasma, 48 horas antes de la salida cada pasajero confirma que viaja, y el conductor ve quién lo ha hecho. Si alguien no responde, el conductor decide: puede escribirle por el chat del viaje o quitarle para dejar la plaza libre.</p></div>
     <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Por qué al entrar con Google aparece una dirección rara?</button></p><p class="a reveal" data-d="1">Google muestra la dirección de Supabase, el servicio con servidores en la Unión Europea donde se guardan los datos de la web (algo como "dbmqy….supabase.co"). Es normal en webs hechas con Supabase: el inicio de sesión lo hace Google directamente, y ni la web ni Supabase ven tu contraseña.</p></div>
     <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Quién verifica a los conductores?</button></p><p class="a reveal" data-d="1">Nadie más allá del inicio de sesión con Google, que evita perfiles anónimos. Te Hago Hueco no comprueba carnés ni vehículos y no es parte del acuerdo entre viajeros. Aplica el sentido común: comparte tu plan con alguien de confianza y no subas si algo no te cuadra.</p></div>
     <div class="row acc reveal"><p class="q reveal"><button type="button" class="acc-btn" aria-expanded="false">¿Hasta cuándo estará activa?</button></p><p class="a reveal" data-d="1">Mientras la alta velocidad Madrid–Andalucía siga interrumpida y haya gente que la necesite. Después se cerrará y se borrarán todos los datos. Los viajes caducan a los 30 días de su salida.</p></div>
@@ -1680,7 +1723,7 @@ function viewHome(p){
     const { riding } = await api.myTrips().catch(()=>({ riding:[] }));
     const due = riding.filter(t => t.status !== "cancelado" && !t.my_confirmed_at && inConfirmWindow(t));
     if(due.length && $("#dueBanner")){
-      $("#dueBanner").innerHTML = `<div class="notice">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar":`Tienes ${due.length} viajes por confirmar`}.</b> Si no confirmas 12 horas antes de salir, la plaza se libera. <a href="#/mis-viajes">Confirmar ahora</a></div></div>`;
+      $("#dueBanner").innerHTML = `<div class="notice">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar":`Tienes ${due.length} viajes por confirmar`}.</b> Así el conductor sabe que cuenta contigo. <a href="#/mis-viajes">Confirmar ahora</a></div></div>`;
     }
   }
   loadResults(); loadDemand(); loadImpact(); loadDue(); watchReveals();
@@ -1731,18 +1774,31 @@ async function viewPublish(editId, params = {}){
   }
   const minDT = new Date(Date.now()+30*60e3); minDT.setSeconds(0,0);
   const toLocal = d => new Date(d.getTime()-d.getTimezoneOffset()*60e3).toISOString().slice(0,16);
-  const draft = !editing ? readDraft() : null;
-  const v = t || (draft && draft.data) || { origin_city: params.o || undefined, dest_city: params.d || undefined };
+  /* "Publicar la vuelta": copia el viaje de ida al revés. La fecha se deja vacía a propósito para que no se publique sin revisarla. */
+  let back = null;
+  if(!editing && params.vuelta && me){
+    app.innerHTML = `<section class="page narrow"><div class="wrap"><div class="skeleton"></div></div></section>`;
+    const src = await api.getTrip(params.vuelta).catch(() => null);
+    if(src && isDriver(src)) back = {
+      origin_city: src.dest_city, origin_lat: src.dest_lat, origin_lng: src.dest_lng, origin_detail: src.dest_detail,
+      dest_city: src.origin_city, dest_lat: src.origin_lat, dest_lng: src.origin_lng, dest_detail: src.origin_detail,
+      stops: src.stops, flexibility: src.flexibility, seats_total: src.seats_total, vehicle: src.vehicle,
+      cost_mode: src.cost_mode, description: src.description, from: src
+    };
+  }
+  const draft = !editing && !back ? readDraft() : null;
+  const v = t || back || (draft && draft.data) || { origin_city: params.o || undefined, dest_city: params.d || undefined };
   const flexOpts = ["Salida puntual","Hora flexible ±30 min","Hora flexible ±1 h","Muy flexible, me adapto al grupo"];
   const flexSel = v.flexibility || "Hora flexible ±30 min";
   const mode = v.cost_mode || "compartir";
   const minSeats = Math.max(1, v.seats_taken || 0);
   const seatsSel = v.seats_total || 3;
-  const whenVal = v.departure_at ? toLocal(new Date(v.departure_at)) : toLocal(new Date(minDT.getTime()+24*3600e3));
+  const whenVal = back ? "" : v.departure_at ? toLocal(new Date(v.departure_at)) : toLocal(new Date(minDT.getTime()+24*3600e3));
   app.innerHTML = `<section class="page narrow"><div class="wrap">
     ${editing ? `<a href="#/viaje/${v.id}" class="small muted" style="text-decoration:none">← Volver al viaje</a>` : ""}
-    <h1>${editing ? "Editar viaje" : "Publica tus plazas libres"}</h1>
-    <p class="lead muted">${editing
+    ${back ? `<a href="#/viaje/${back.from.id}" class="small muted" style="text-decoration:none">← Volver al viaje de ida</a>` : ""}
+    <h1>${editing ? "Editar viaje" : back ? "Publica la vuelta" : "Publica tus plazas libres"}</h1>
+    <p class="lead muted">${back ? `Hemos copiado tu viaje de ida (${esc(back.from.origin_city)} a ${esc(back.from.dest_city)}, ${esc(fmtDayShort(back.from.departure_at))}) al revés. Elige cuándo vuelves y revisa el resto antes de publicar.` : editing
       ? (v.seats_taken ? `Hay ${v.seats_taken} ${v.seats_taken===1?"persona apuntada":"personas apuntadas"}. Les avisaremos en el grupo de lo que cambies.` : "Cambia lo que necesites. Nadie se ha apuntado todavía.")
       : "Cuéntanos lo esencial. El punto exacto de recogida lo acordaréis después en el grupo privado del viaje; aquí basta con una zona o referencia."}</p>
     ${!editing && !me ? `<div class="notice" style="margin-bottom:16px">${ICON.info}<div>Puedes rellenarlo ya. Al final te pediremos entrar con Google, para que quien viaje contigo sepa quién eres. No mostramos tu correo ni pedimos tu teléfono.</div></div>` : ""}
@@ -1761,7 +1817,7 @@ async function viewPublish(editId, params = {}){
       <fieldset>
         <legend>Cuándo y cuántas plazas</legend>
         <div class="form-grid">
-          <div class="field"><label for="pdt">Fecha y hora de salida</label><input type="datetime-local" id="pdt" required min="${toLocal(minDT)}" value="${whenVal}"></div>
+          <div class="field"><label for="pdt">Fecha y hora de salida</label><input type="datetime-local" id="pdt" required min="${toLocal(minDT)}" value="${whenVal}">${back ? `<span class="hint">Elige el día y la hora a la que vuelves.</span>` : ""}</div>
           <div class="field"><label for="pflex">Flexibilidad de horario</label><select id="pflex">${flexOpts.map(o=>`<option ${o===flexSel?"selected":""}>${o}</option>`).join("")}</select></div>
           <div class="field"><label for="pseats">Plazas libres</label><select id="pseats">${[1,2,3,4,5,6].filter(n=>n>=minSeats).map(n=>`<option value="${n}" ${n===seatsSel?"selected":""}>${n}</option>`).join("")}</select><span class="hint">${editing && v.seats_taken ? `No puede ser menos de ${v.seats_taken}, las ya ocupadas.` : "Cuando se ocupen, el viaje se cerrará solo."}</span></div>
           <div class="field"><label for="pveh">Vehículo (opcional)</label><input id="pveh" maxlength="60" value="${esc(v.vehicle||"")}" placeholder="Ej.: monovolumen gris, maletero grande"></div>
@@ -1870,9 +1926,35 @@ function confirmBox(t, mine){
   if(mine.confirmed_at) return `<div class="confirm ok"><span class="dot">${CHECK_ICON}</span><div><b>Has confirmado que viajas.</b><br><span class="small">El conductor ya lo ve. Si cambias de planes, pulsa "Ya no viajo".</span></div></div>`;
   if(inConfirmWindow(t)){
     const past = Date.now() >= confirmDeadline(t).getTime();
-    return `<div class="confirm due"><div><b>Confirma que sigues viajando.</b><br><span class="small">${past ? "El plazo ha vencido y tu plaza puede liberarse en cualquier momento." : `Tienes hasta el ${fmtWhen(confirmDeadline(t))}. Si no confirmas, la plaza se liberará para otra persona.`}</span></div><button class="btn accent" id="confirmBtn">Confirmo que viajo</button></div>`;
+    return `<div class="confirm due"><div><b>Confirma que sigues viajando.</b><br><span class="small">${past ? "El conductor está esperando tu confirmación. Si no la ve, podría dar tu plaza a otra persona." : `Tienes hasta el ${fmtWhen(confirmDeadline(t))}. El conductor ve quién ha confirmado; si no lo haces, podría dar tu plaza a otra persona.`}</span></div><button class="btn accent" id="confirmBtn">Confirmo que viajo</button></div>`;
   }
-  return `<div class="confirm wait"><div><b>Te pediremos que confirmes.</b><br><span class="small">A partir del ${fmtWhen(confirmOpensAt(t))} tendrás que pulsar "Confirmo que viajo" en esta página. Si no lo haces 12 horas antes de salir, la plaza se libera.</span></div></div>`;
+  return `<div class="confirm wait"><div><b>Te pediremos que confirmes.</b><br><span class="small">A partir del ${fmtWhen(confirmOpensAt(t))} tendrás que pulsar "Confirmo que viajo" en esta página. Así el conductor sabe que cuenta contigo.</span></div></div>`;
+}
+const SHARE_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>';
+async function shareTrip(t, driver){
+  const url = `${location.origin}/#/viaje/${t.id}`;
+  const free = Math.max(0, t.seats_total - t.seats_taken);
+  const when = `el ${fmtDayShort(t.departure_at)} a las ${fmtTime(t.departure_at)}`;
+  const seats = free === 0 ? "" : free === 1 ? (driver ? " y me queda 1 plaza libre" : ", queda 1 plaza libre") : (driver ? ` y me quedan ${free} plazas libres` : `, quedan ${free} plazas libres`);
+  const text = driver
+    ? `Voy de ${t.origin_city} a ${t.dest_city} ${when}${seats}. Si te viene bien, apúntate en Te Hago Hueco:`
+    : `Viaje de ${t.origin_city} a ${t.dest_city} ${when}${seats}. Por si te viene bien, en Te Hago Hueco:`;
+  if(navigator.share){
+    try{ await navigator.share({ title: `${t.origin_city} → ${t.dest_city}`, text, url }); return; }
+    catch(err){ if(err && err.name === "AbortError") return; }
+  }
+  const wa = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
+  modal(`<h3>Compartir el viaje</h3>
+    <p class="muted" style="white-space:pre-wrap">${esc(text)}<br>${esc(url)}</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" class="btn secondary" id="mCopy">Copiar enlace</button>
+      <a class="btn accent" id="mWa" href="${esc(wa)}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+    </div>`);
+  $("#mWa").onclick = () => setTimeout(closeModal, 300);
+  $("#mCopy").onclick = async () => {
+    try{ await navigator.clipboard.writeText(text + " " + url); toast("Enlace copiado", "ok"); closeModal(); }
+    catch(_){ toast("No se pudo copiar. Mantén pulsado el texto para copiarlo.", "err"); }
+  };
 }
 async function viewTrip(id){
   setNav(null);
@@ -1928,11 +2010,16 @@ async function viewTrip(id){
     else if(full) action = `<div class="notice">${ICON.info}<div>Viaje completo. Si alguien se desapunta, volverá a abrirse. <a href="#/?o=${encodeURIComponent(t.origin_city)}&d=${encodeURIComponent(t.dest_city)}">Buscar alternativas</a>.</div></div>`;
     else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button><p class="small muted" style="margin:10px 0 0;text-align:center">Entrarás en el grupo privado del viaje. 48 horas antes de salir te pediremos que confirmes; si cambias de planes, pulsa "Ya no viajo" y la plaza queda libre.</p>`;
 
+    const canShare = !cancelled && !past && !t.blocked;
+    const shareHtml = !canShare ? "" : driver
+      ? `<div class="share-box"><div><b>Comparte tu viaje</b><br><span class="small muted">Mándalo a tus grupos o súbelo a tus redes. Así se llena antes.</span></div><button class="btn accent" data-share>${SHARE_ICON} Compartir</button></div>`
+      : `<button type="button" class="btn secondary block" data-share style="margin-top:12px">${SHARE_ICON} Compartir este viaje</button>`;
+    const blockedHtml = driver && t.blocked ? `<div class="notice danger" style="margin-bottom:14px">${ICON.info}<div><b>Este viaje está en revisión.</b> Mientras lo revisamos no aparece en la búsqueda y nadie nuevo puede apuntarse. Si crees que es un error, escríbenos a <a href="mailto:${esc(CFG.contactEmail)}">${esc(CFG.contactEmail)}</a>.</div></div>` : "";
     const pendingCount = members.filter(m=>!m.confirmed_at).length;
     const others = t.seats_taken === 1 ? "Hay 1 persona apuntada" : `Hay ${t.seats_taken} personas apuntadas`;
     const membersHtml = !me ? `<p class="muted small">${t.seats_taken ? others + ". " : ""}Inicia sesión para ver quién va.</p>`
       : !(driver || amMember) ? `<p class="muted small">${t.seats_taken ? others + ". Por privacidad, solo quienes van en el viaje ven quiénes son." : "Todavía nadie se ha apuntado."}</p>`
-      : members.length ? `<ul class="member-list">${members.map(m=>memberChip(m, driver && !cancelled)).join("")}</ul>${driver && pendingCount && inConfirmWindow(t) ? `<p class="small muted" style="margin:10px 0 0">${pendingCount===1?"Una persona no ha confirmado":`${pendingCount} personas no han confirmado`}. Si no lo hacen antes del ${fmtWhen(confirmDeadline(t))}, sus plazas se liberan solas.</p>` : ""}`
+      : members.length ? `<ul class="member-list">${members.map(m=>memberChip(m, driver && !cancelled)).join("")}</ul>${driver && pendingCount && inConfirmWindow(t) ? `<p class="small muted" style="margin:10px 0 0">${pendingCount===1?"Una persona no ha confirmado":`${pendingCount} personas no han confirmado`}. Puedes escribirles por el chat o, si no responden, quitarles para dejar la plaza libre. Nada se libera solo: decides tú.</p>` : ""}`
       : `<p class="muted small">Todavía nadie se ha apuntado.</p>`;
     const canChat = me && (driver || amMember);
     const linkHtml = !canChat ? "" : (driver && (editingLink || !groupLink)) && !cancelled
@@ -1968,7 +2055,7 @@ async function viewTrip(id){
               <div><div style="font-weight:600">${esc(t.driver?.display_name||"Conductor")}</div><div class="small muted">Conduce este viaje · cuenta verificada con Google</div></div>
             </div>` : `<div class="locked" style="margin-top:22px">${ICON.lock}<div><b>Quién conduce y los detalles, con cuenta</b><br><span class="small">El nombre, la foto, la zona de salida y llegada y la descripción solo los ven las personas registradas. Así protegemos a quien publica su viaje.</span><br><button class="btn sm" id="anonLogin" style="margin-top:12px">${ICON.google} Entrar con Google</button></div></div>`}
           </div>
-          <div class="panel box">${action}</div>
+          <div class="panel box">${blockedHtml}${driver ? shareHtml : ""}${action}${driver ? "" : shareHtml}${driver && !cancelled ? `<p class="small muted back-link"><a href="#/publicar?vuelta=${t.id}">¿Vuelves también? Publica la vuelta</a></p>` : ""}</div>
           <div class="panel box tips">
             <h3>Para viajar con tranquilidad</h3>
             <ul>
@@ -1996,6 +2083,7 @@ async function viewTrip(id){
       </div></div></section>`;
 
     if($("#anonLogin")) $("#anonLogin").onclick = () => api.signIn();
+    document.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareTrip(t, driver));
     if($("#reportBtn")) $("#reportBtn").onclick = () => {
       if(!me){ requireLogin(`Para reportar necesitamos saber quién eres, así evitamos avisos falsos. Si lo prefieres, escríbenos a ${CFG.contactEmail}.`); return; }
       const people = [];
@@ -2045,7 +2133,7 @@ async function viewTrip(id){
     document.querySelectorAll("[data-leave]").forEach(b => b.onclick = leaveFlow);
     if($("#confirmBtn")) $("#confirmBtn").onclick = async () => {
       $("#confirmBtn").disabled = true;
-      try{ await api.confirm(id); toast("Confirmado. ¡Buen viaje!", "ok"); }catch(err){ toast(err.message, "err"); }
+      try{ await api.confirm(id); toast("Confirmado. ¡Buen viaje!", "ok"); updateBadge(true); }catch(err){ toast(err.message, "err"); }
       await refresh();
     };
     document.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => {
@@ -2126,7 +2214,7 @@ async function viewMine(){
   const NEED = { diario:"A diario", semanal:"Cada semana", puntual:"Una vez" };
   app.innerHTML = `<section class="page"><div class="wrap">
     <h1>Mis viajes</h1>
-    ${due.length ? `<div class="notice" style="margin-bottom:8px">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar.":`Tienes ${due.length} viajes por confirmar.`}</b> Si no confirmas 12 horas antes de la salida, la plaza se libera para otra persona.</div></div>` : ""}
+    ${due.length ? `<div class="notice" style="margin-bottom:8px">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar.":`Tienes ${due.length} viajes por confirmar.`}</b> El conductor ve quién ha confirmado, así sabe que cuenta contigo.</div></div>` : ""}
     <h2 style="margin-top:28px">Voy de pasajero</h2>
     ${rd.length ? `<div class="trips">${rd.map(ridingCard).join("")}</div>` : `<div class="empty"><p>No estás apuntado a ningún viaje. <a href="#/">Busca uno</a>.</p></div>`}
     <h2 style="margin-top:40px">Conduzco</h2>
@@ -2142,7 +2230,7 @@ async function viewMine(){
   </div></section>`;
   watchReveals();
   document.querySelectorAll("[data-confirm]").forEach(b => b.onclick = async () => {
-    b.disabled = true; try{ await api.confirm(b.dataset.confirm); toast("Confirmado. ¡Buen viaje!", "ok"); }catch(err){ toast(err.message, "err"); } viewMine();
+    b.disabled = true; try{ await api.confirm(b.dataset.confirm); toast("Confirmado. ¡Buen viaje!", "ok"); updateBadge(true); }catch(err){ toast(err.message, "err"); } viewMine();
   });
   document.querySelectorAll("[data-leave]").forEach(b => b.onclick = () => {
     modal(`<h3>¿Ya no viajas?</h3><p class="muted">Tu plaza quedará libre para otra persona y saldrás del grupo. El conductor verá un aviso.</p><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn secondary" id="mNo">Sigo viajando</button><button class="btn danger" id="mYes">Ya no viajo</button></div>`);
@@ -2270,7 +2358,7 @@ function viewHow(){
       <li>Busca por origen, destino, fecha y número de plazas, en lista o en mapa. No hace falta cuenta para buscar.</li>
       <li>Para apuntarte sí necesitas identificarte con Google. Mostramos tu nombre de pila, la inicial de tu apellido y la foto de tu cuenta de Google; nunca tu correo.</li>
       <li>Al apuntarte ocupas una plaza y entras en el grupo del viaje. Si cambias de planes, pulsa "Ya no viajo" para que otra persona pueda usarla.</li>
-      <li>48 horas antes de la salida tendrás que confirmar que viajas. Si a 12 horas de salir no has confirmado, la plaza se libera automáticamente.</li>
+      <li>48 horas antes de la salida tendrás que confirmar que viajas. El conductor ve quién ha confirmado y puede dar la plaza a otra persona si no respondes.</li>
     </ul>
     <h2>Privacidad y contacto</h2>
     <p>Nunca mostramos teléfonos ni correos. El contacto se produce dentro del grupo privado de cada viaje, al que solo acceden el conductor y los pasajeros apuntados. Si en ese grupo decidís intercambiar el teléfono, es decisión vuestra.</p>

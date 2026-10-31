@@ -1,0 +1,9 @@
+-- Aplicada con el conector el 31-10-2026 como `no_autorelease_and_abuse_limits`.
+-- Resumen (la definición completa está en la base de datos):
+--  * release_unconfirmed(): ya no libera plazas (return 0). Decide el conductor.
+--  * trips.blocked boolean not null default false; anon/authenticated pueden leer la columna.
+--  * policy trips_select: using (not blocked or driver_id = auth.uid()).
+--  * join_trip: rechaza viajes bloqueados.
+--  * trigger reports_after_insert_autoblock: más de 7 personas distintas con reportes abiertos o revisados => blocked = true.
+--  * trigger trips_before_insert_rate: máximo 5 viajes por conductor cada 24 h.
+--  * trigger messages_before_insert_rate: máximo 10 mensajes (no de sistema) por usuario y minuto.

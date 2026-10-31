@@ -22,6 +22,9 @@ Web solidaria sin ánimo de lucro para compartir coche Madrid–Andalucía mient
 - Para hacer push desde el entorno de Claude, usa el remoto `https://github.com/nicorenedo/blablahelp` (GitHub redirige al repositorio renombrado `tehagohueco`; la URL nueva devuelve 403 por los permisos de la app).
 - Privacidad: sin sesión solo columnas públicas de `trips` (`PUBLIC_COLS`); nombre, foto, zonas, paradas, vehículo y descripción solo con sesión.
 - Reportes: tabla `reports` (solo inserción desde la web). Motivo `seguridad` (conducción peligrosa o accidente) = urgente; si la restricción aún no lo admite, el cliente lo guarda como `conducta` con el texto marcado. Revisar con SQL a petición de Nico: `select * from reports where status='abierto' order by created_at`.
+- Protecciones (migración `no_autorelease_and_abuse_limits`, 31-10): las plazas sin confirmar ya NO se liberan solas (`release_unconfirmed()` devuelve 0; decide el conductor y puede quitar a quien no responda). `trips.blocked`: si más de 7 personas distintas reportan un viaje (reportes abiertos o revisados), un trigger lo bloquea; deja de verse en la búsqueda y nadie puede apuntarse; solo lo ve su conductor, con un aviso de "en revisión". El umbral NO se muestra en la web. Desbloquear: `update trips set blocked=false where id='…'`. Límites: 5 viajes por conductor cada 24 h y 10 mensajes por minuto por usuario.
+- Revisión diaria de reportes: tarea programada (create_trigger) a las 8:58 hora de Madrid; solo lee y avisa, nunca actúa sola.
+- Web: botón Compartir en la página del viaje (navigator.share, si no hay, WhatsApp o copiar enlace); "Publica la vuelta" (`#/publicar?vuelta=ID`, copia el viaje al revés y deja la fecha vacía); aviso numérico en "Mis viajes" con viajes por confirmar.
 - Nunca guardar teléfonos. Nunca poner la clave `service_role` en el frontend.
 - Antes de dar por buena una edición visual: servir con `python3 -m http.server 8080` y revisar a 1440 y 390 px.
 
