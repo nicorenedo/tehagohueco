@@ -238,7 +238,7 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .wanted li > div{display:grid;gap:2px}
 #repForm .field{margin-bottom:14px}
 .linklike{background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.dir-row{display:grid;gap:10px;margin:-8px 0 26px}
+.dir-row{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:-8px 0 26px}
 .pop-chips{display:flex;flex-wrap:wrap;gap:8px}
 .pop-chips .chip{background:var(--paper)}
 .pop-chips .chip b{font-weight:700;color:var(--field)}
@@ -281,7 +281,7 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
   .pop-chips::-webkit-scrollbar{display:none}
   .pop-chips .chip{flex:none}
   #dirChips{flex-wrap:nowrap}
-  #dirChips .chip{flex:1 1 auto;justify-content:center;padding:0 10px}
+  #dirChips .chip{flex:1 1 0;min-width:0;justify-content:center;padding:0 8px;white-space:nowrap}
 }
 .more-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:24px}
 .trips{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:clamp(10px,1.4vw,20px)}
@@ -379,7 +379,8 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 /* Pie */
 footer{background:var(--field);color:var(--field-ink);min-height:100svh;display:grid;grid-template-rows:auto 1fr auto;padding:40px var(--m) 20px;position:sticky;bottom:0;z-index:0}
 main{position:relative;z-index:1;background:var(--bg)}
-footer .cols{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;font-size:var(--step-small)}
+footer .cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;font-size:var(--step-small)}
+footer .cols li{overflow-wrap:anywhere}
 footer .cols ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 footer .cols li:first-child{font-weight:600;color:var(--field-ink);margin-bottom:4px;font-size:var(--step-body)}
 footer .cols li{color:var(--field-soft)}
@@ -388,7 +389,7 @@ footer .cols a{text-decoration:none}
 footer .mark{align-self:end;width:100%;display:block;margin-top:20svh}
 footer .mark svg{width:100%;height:auto;display:block}
 footer .legal{font-size:var(--step-small);color:var(--field-soft);margin:16px 0 0;max-width:none;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-@media (max-width:700px){footer .cols{grid-template-columns:1fr 1fr;gap:32px 16px}footer .legal{flex-direction:column}}
+@media (max-width:700px){footer .cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px 16px}footer .legal{flex-direction:column}}
 body:not(.home) footer{min-height:0;position:static}
 body:not(.home) footer .mark{margin-top:48px}
 
@@ -593,6 +594,12 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .mail-opts p{margin:0 0 6px}
 .join-notify{margin:12px 0 0;color:var(--muted)}
 .join-notify input{margin-top:3px}
+.done-ask p{margin:6px 0 12px}
+.done-btns{display:flex;gap:8px;flex-wrap:wrap}
+.done-list ul{list-style:none;margin:12px 0 0;padding:0}
+.done-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0}
+/* Red de seguridad: nada del contenido puede ensanchar la página en el móvil. */
+main#app{overflow-x:clip}
 </style>
 </head>
 <body>
@@ -1121,6 +1128,11 @@ const api = {
       .subscribe();
     return () => sb.removeChannel(ch);
   },
+  async markDone(tripId, done){
+    if(DEMO){ const t = demoState.trips.find(x=>x.id===tripId); if(t){ t.done = done; t.done_at = new Date().toISOString(); } return; }
+    const { error } = await sb.rpc("mark_trip_done", { p_trip_id: tripId, p_done: done });
+    if(error) throw error;
+  },
   async unconfirmedTrips(ids){
     if(!ids.length) return 0;
     if(DEMO) return ids.filter(id => (demoState.members[id]||[]).some(m=>!m.confirmed_at)).length;
@@ -1270,6 +1282,8 @@ function setNav(key){
 }
 /* Aviso en "Mis viajes": viajes que esperan confirmación (como pasajero) o con gente sin confirmar (como conductor).
    Como mucho una consulta por minuto. */
+const needsDone = t => t.status !== "cancelado" && t.done == null && new Date(t.departure_at).getTime() < Date.now()
+  && new Date(t.departure_at).getTime() > Date.now() - 7*864e5;
 let badgeAt = 0;
 async function updateBadge(force){
   if(!me){ setBadge(0); return; }
@@ -1280,6 +1294,7 @@ async function updateBadge(force){
     const live = t => t.status !== "cancelado" && inConfirmWindow(t);
     let n = riding.filter(t => live(t) && !t.my_confirmed_at).length;
     n += await api.unconfirmedTrips(driving.filter(t => live(t) && t.seats_taken > 0).map(t => t.id));
+    n += driving.filter(needsDone).length;
     setBadge(n);
   }catch(_){}
 }
@@ -1289,7 +1304,7 @@ function setBadge(n){
     if(!n){ if(b) b.remove(); a.removeAttribute("aria-label"); return; }
     if(!b){ b = document.createElement("span"); b.className = "badge"; b.setAttribute("aria-hidden","true"); a.appendChild(b); }
     b.textContent = n > 9 ? "9+" : String(n);
-    a.setAttribute("aria-label", `Mis viajes, ${n} ${n===1?"pendiente de confirmar":"pendientes de confirmar"}`);
+    a.setAttribute("aria-label", `Mis viajes, ${n} ${n===1?"cosa pendiente":"cosas pendientes"}`);
   });
 }
 let heroObs = null;
@@ -2033,6 +2048,11 @@ async function viewTrip(id){
     const mine = members.find(m => me && m.user_id === me.id);
     let action = "";
     if(cancelled) action = `<div class="notice danger">${ICON.info}<div>${driver ? "Has cancelado este viaje." : "El conductor ha cancelado este viaje."}</div></div>${driver ? `<div class="owner-actions"><button class="btn danger" id="deleteBtn">Eliminar definitivamente</button></div>` : ""}`;
+    else if(driver && past) action = t.done == null
+      ? `<div class="done-ask"><b>¿Se hizo este viaje?</b><p class="small muted">Nos ayuda a saber cuántos viajes se han hecho de verdad.${t.thanks_optin ? " Si se hizo, te mandaremos el agradecimiento que pediste." : ""}</p><div class="done-btns"><button class="btn accent" data-done="1">Sí, se hizo</button><button class="btn secondary" data-done="0">Al final no se hizo</button></div></div>`
+      : t.done
+        ? `<div class="notice ok">${CHECK_ICON}<div><b>Gracias por hacer hueco.</b> ${t.seats_taken ? `Llevaste a ${t.seats_taken === 1 ? "una persona" : t.seats_taken + " personas"}.` : "Aunque esta vez nadie se apuntara, ofrecer tu plaza también ayuda."} <a href="#/publicar?vuelta=${t.id}">Publicar la vuelta</a></div></div>`
+        : `<div class="notice">${ICON.info}<div>Marcaste que este viaje no se hizo. Gracias por avisar.</div></div>`;
     else if(driver) action = `
       <div class="seat-ctl">
         <div><b>Plazas libres</b><br><span class="small muted">${t.seats_taken} ocupadas de ${t.seats_total}</span></div>
@@ -2126,6 +2146,13 @@ async function viewTrip(id){
 
     if($("#anonLogin")) $("#anonLogin").onclick = () => api.signIn();
     document.querySelectorAll("[data-share]").forEach(b => b.onclick = () => shareTrip(t, driver));
+    document.querySelectorAll("[data-done]").forEach(b => b.onclick = async () => {
+      const done = b.dataset.done === "1";
+      document.querySelectorAll("[data-done]").forEach(x => x.disabled = true);
+      try{ await api.markDone(id, done); toast(done ? "¡Gracias por hacer hueco!" : "Gracias por avisar", "ok"); updateBadge(true); }
+      catch(err){ toast(err.message, "err"); }
+      await refresh();
+    });
     if($("#reportBtn")) $("#reportBtn").onclick = () => {
       if(!me){ requireLogin(`Para reportar necesitamos saber quién eres, así evitamos avisos falsos. Si lo prefieres, escríbenos a ${CFG.contactEmail}.`); return; }
       const people = [];
@@ -2257,11 +2284,17 @@ async function viewMine(){
     return `<div class="trip-wrap">${tripCard(t, i)}<div class="trip-actions">${state}${cancelled ? "" : `<button class="btn sm secondary" data-leave="${t.id}">${X_ICON} Ya no viajo</button>`}</div></div>`;
   };
   const dr = upcoming(driving), rd = upcoming(riding);
+  const pendingDone = driving.filter(needsDone);
   const due = rd.filter(t => t.status !== "cancelado" && !t.my_confirmed_at && inConfirmWindow(t));
   const NEED = { diario:"A diario", semanal:"Cada semana", puntual:"Una vez" };
   app.innerHTML = `<section class="page"><div class="wrap">
     <h1>Mis viajes</h1>
     ${due.length ? `<div class="notice" style="margin-bottom:8px">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar.":`Tienes ${due.length} viajes por confirmar.`}</b> El conductor ve quién ha confirmado, así sabe que cuenta contigo.</div></div>` : ""}
+    ${pendingDone.length ? `<div class="panel box done-list" style="margin-top:20px">
+      <h3>¿Se hicieron estos viajes?</h3>
+      <p class="small muted">Confírmalo para que sepamos cuántos viajes se hacen de verdad.</p>
+      <ul>${pendingDone.map(t => `<li><span><b>${esc(t.origin_city)} → ${esc(t.dest_city)}</b> <span class="small muted">${esc(fmtDayShort(t.departure_at))}, ${fmtTime(t.departure_at)}</span></span><span class="done-btns"><button class="btn sm accent" data-mdone="${t.id}|1">Sí, se hizo</button><button class="btn sm secondary" data-mdone="${t.id}|0">No se hizo</button></span></li>`).join("")}</ul>
+    </div>` : ""}
     <h2 style="margin-top:28px">Voy de pasajero</h2>
     ${rd.length ? `<div class="trips">${rd.map(ridingCard).join("")}</div>` : `<div class="empty"><p>No estás apuntado a ningún viaje. <a href="#/">Busca uno</a>.</p></div>`}
     <h2 style="margin-top:40px">Conduzco</h2>
@@ -2293,6 +2326,13 @@ async function viewMine(){
   document.querySelectorAll("[data-unsign]").forEach(b => b.onclick = async () => {
     const [o, d] = b.dataset.unsign.split("|");
     try{ await api.unsign(o, d); toast("Firma retirada"); }catch(err){ toast(err.message, "err"); } viewMine();
+  });
+  document.querySelectorAll("[data-mdone]").forEach(b => b.onclick = async () => {
+    const [tid, v] = b.dataset.mdone.split("|");
+    b.closest("li").querySelectorAll("button").forEach(x => x.disabled = true);
+    try{ await api.markDone(tid, v === "1"); toast(v === "1" ? "¡Gracias por hacer hueco!" : "Gracias por avisar", "ok"); updateBadge(true); }
+    catch(err){ toast(err.message, "err"); }
+    viewMine();
   });
   const prefSave = async (trip, alerts, el) => {
     el.disabled = true;
