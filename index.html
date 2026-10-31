@@ -588,7 +588,11 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .alert-opt{margin:0 0 14px;color:var(--muted)}
 .alert-opt input{margin-top:3px}
 .alert-on{margin:0 0 14px}
-.thanks-opt{margin:0 0 6px}
+.mail-opts{margin:0 0 14px}
+.mail-opts .check{padding:4px 0}
+.mail-opts p{margin:0 0 6px}
+.join-notify{margin:12px 0 0;color:var(--muted)}
+.join-notify input{margin-top:3px}
 </style>
 </head>
 <body>
@@ -1169,14 +1173,14 @@ const api = {
   },
   async notifyPrefs(){
     if(!me) return null;
-    if(DEMO) return demoState.prefs || { trip_updates:true, route_alerts:false, route_alerts_until:null };
+    if(DEMO) return demoState.prefs || { trip_updates:false, route_alerts:false, route_alerts_until:null };
     const { data, error } = await sb.rpc("my_notify_prefs");
     if(error) return null;
     return data;
   },
   async setNotifyPrefs(tripUpdates, routeAlerts){
     if(DEMO){
-      const p = demoState.prefs || { trip_updates:true, route_alerts:false, route_alerts_until:null };
+      const p = demoState.prefs || { trip_updates:false, route_alerts:false, route_alerts_until:null };
       if(tripUpdates != null) p.trip_updates = tripUpdates;
       if(routeAlerts === true){ p.route_alerts = true; p.route_alerts_until = new Date(Date.now()+15*864e5).toISOString(); }
       if(routeAlerts === false){ p.route_alerts = false; p.route_alerts_until = null; }
@@ -1770,6 +1774,7 @@ async function resumePendingTrip(){
   if(Date.now() - (d.at || 0) > 30*60e3) return false;   // borrador antiguo: solo sirve para rellenar el formulario
   if(new Date(d.data.departure_at).getTime() < Date.now() + 15*60e3){ history.replaceState(null, "", "#/publicar"); toast("Revisa la hora de salida y vuelve a pulsar Publicar", "err"); return true; }
   try{
+    if(d.notify) await api.setNotifyPrefs(true, null).catch(() => {});
     const row = await api.createTrip(Object.assign({ contribution_eur: 0 }, d.data));
     clearDraft(); history.replaceState(null, "", "#/viaje/" + row.id);
     toast("Viaje publicado. Gracias por hacer hueco.", "ok");
@@ -1813,6 +1818,8 @@ async function viewPublish(editId, params = {}){
     };
   }
   const draft = !editing && !back ? readDraft() : null;
+  const prefs = me ? await api.notifyPrefs().catch(() => null) : null;
+  const notifyOn = !!(prefs && prefs.trip_updates);
   const v = t || back || (draft && draft.data) || { origin_city: params.o || undefined, dest_city: params.d || undefined };
   const flexOpts = ["Salida puntual","Hora flexible ±30 min","Hora flexible ±1 h","Muy flexible, me adapto al grupo"];
   const flexSel = v.flexibility || "Hora flexible ±30 min";
@@ -1866,8 +1873,11 @@ async function viewPublish(editId, params = {}){
         <label class="check"><input type="checkbox" id="c2" required><span>Entiendo que ${esc(CFG.siteName)} solo pone en contacto a personas y no es parte del acuerdo entre conductor y pasajeros. He leído las <a href="#/legal/condiciones" target="_blank">condiciones de uso</a>.</span></label>
         <label class="check"><input type="checkbox" id="c3" required><span>Si no puedo hacer el viaje, lo cancelaré en la web y avisaré en el grupo con la mayor antelación posible.</span></label>
       </fieldset>`}
-      <label class="check small thanks-opt"><input type="checkbox" id="pthanks" ${v.thanks_optin ? "checked" : ""}><span>Quiero recibir un correo de agradecimiento después del viaje.</span></label>
-      <p class="small muted" style="margin:0 0 14px">Te avisaremos por correo de lo importante de tu viaje, como quién se apunta. Puedes desactivarlo en Mis viajes.</p>
+      <div class="mail-opts">
+        ${notifyOn ? `<p class="small muted">Te avisaremos por correo de quién se apunta o se va. <a href="#/mis-viajes?ir=avisos">Cambiarlo</a></p>`
+          : `<label class="check small"><input type="checkbox" id="pnotify" ${draft && draft.notify ? "checked" : ""}><span>Avísame por correo cuando alguien se apunte o se vaya de mis viajes.</span></label>`}
+        <label class="check small"><input type="checkbox" id="pthanks" ${v.thanks_optin ? "checked" : ""}><span>Quiero recibir un correo de agradecimiento después del viaje.</span></label>
+      </div>
       <div id="formErr" class="notice danger hidden" style="margin-bottom:14px"></div>
       <div class="form-actions">
         ${editing ? `<a class="btn secondary" href="#/viaje/${v.id}">Descartar cambios</a>` : ""}
@@ -1927,17 +1937,19 @@ async function viewPublish(editId, params = {}){
       thanks_optin: !!f("pthanks")?.checked
     };
     if(!me){
-      try{ sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ data, at: Date.now() })); }catch(_){}
+      try{ sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ data, at: Date.now(), notify: !!f("pnotify")?.checked })); }catch(_){}
       requireLogin("Tu viaje está listo. Entra con Google y lo publicamos en cuanto vuelvas.");
       return;
     }
     f("pubSubmit").disabled = true;
     try{
       if(editing){
+        if(f("pnotify")?.checked) await api.setNotifyPrefs(true, null).catch(() => {});
         await api.updateTrip(v.id, data);
         toast("Cambios guardados", "ok");
         location.hash = "#/viaje/" + v.id;
       } else {
+        if(f("pnotify")?.checked) await api.setNotifyPrefs(true, null).catch(() => {});
         const row = await api.createTrip(Object.assign({ contribution_eur: 0 }, data));
         clearDraft();
         toast("Viaje publicado. Gracias por hacer hueco.", "ok");
@@ -1992,6 +2004,7 @@ async function viewTrip(id){
   const gone = () => { app.innerHTML = `<section class="page narrow"><div class="wrap"><div class="empty"><h3>Este viaje ya no está disponible</h3><p>Puede que el conductor lo haya eliminado. <a href="#/">Busca otro viaje</a>.</p></div></div></section>`; };
   if(!t){ gone(); return; }
   let members = [], msgs = [], groupLink = "", editingLink = false;
+  let tripPrefs = me ? await api.notifyPrefs().catch(() => null) : null;
   async function refresh(){
     const fresh = await api.getTrip(id);
     if(!fresh){ gone(); return; }
@@ -2037,7 +2050,7 @@ async function viewTrip(id){
     else if(amMember) action = `${past ? `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>` : confirmBox(t, mine)}<button class="btn secondary block" id="leaveBtn" style="margin-top:12px">${X_ICON} Ya no viajo</button>`;
     else if(past) action = `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>`;
     else if(full) action = `<div class="notice">${ICON.info}<div>Viaje completo. Si alguien se desapunta, volverá a abrirse. <a href="#/?o=${encodeURIComponent(t.origin_city)}&d=${encodeURIComponent(t.dest_city)}">Buscar alternativas</a>.</div></div>`;
-    else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button><p class="small muted" style="margin:10px 0 0;text-align:center">Entrarás en el grupo privado del viaje. 48 horas antes de salir te pediremos que confirmes; si cambias de planes, pulsa "Ya no viajo" y la plaza queda libre.</p>`;
+    else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button>${me && !(tripPrefs && tripPrefs.trip_updates) ? `<label class="check small join-notify"><input type="checkbox" id="joinNotify"><span>Avísame por correo si el viaje cambia o se cancela, y cuando toque confirmar.</span></label>` : ""}<p class="small muted" style="margin:10px 0 0;text-align:center">Entrarás en el grupo privado del viaje. 48 horas antes de salir te pediremos que confirmes; si cambias de planes, pulsa "Ya no viajo" y la plaza queda libre.</p>`;
 
     const canShare = !cancelled && !past && !t.blocked;
     const shareHtml = !canShare ? "" : driver
@@ -2155,7 +2168,12 @@ async function viewTrip(id){
     if($("#joinBtn")) $("#joinBtn").onclick = async () => {
       if(!me) return requireLogin("Para apuntarte a un viaje necesitas identificarte.");
       $("#joinBtn").disabled = true;
-      try{ await api.join(id); toast("Te has apuntado. Saluda en el grupo.", "ok"); await refresh(); }
+      const wantMail = !!$("#joinNotify")?.checked;
+      try{
+        await api.join(id);
+        if(wantMail){ tripPrefs = await api.setNotifyPrefs(true, null).catch(() => tripPrefs); }
+        toast("Te has apuntado. Saluda en el grupo.", "ok"); await refresh();
+      }
       catch(err){ toast(err.message||"No se pudo completar", "err"); await refresh(); }
     };
     if($("#leaveBtn")) $("#leaveBtn").onclick = leaveFlow;
@@ -2254,7 +2272,7 @@ async function viewMine(){
     ${prefs ? `<div class="panel box" id="avisos" style="margin-top:56px">
       <h3>Avisos por correo</h3>
       <p class="muted small">Te escribimos a ${esc(me.email || "tu correo de Google")} desde avisos@tehagohueco.es. Como mucho tres al día, salvo cancelaciones de última hora, y nunca publicidad.</p>
-      <label class="check"><input type="checkbox" id="prefTrips" ${prefs.trip_updates ? "checked" : ""}><span><b>Avisos de mis viajes.</b> Si cancelan o cambian un viaje en el que vas, si te quitan de un viaje y el recordatorio para confirmar. Si conduces, quién se apunta o se va.</span></label>
+      <label class="check"><input type="checkbox" id="prefTrips" ${prefs.trip_updates ? "checked" : ""}><span><b>Avisos de mis viajes</b> (desactivados salvo que los pidas). Si cancelan o cambian un viaje en el que vas, si te quitan de un viaje y el recordatorio para confirmar. Si conduces, quién se apunta o se va.</span></label>
       <label class="check"><input type="checkbox" id="prefAlerts" ${prefs.route_alerts ? "checked" : ""}><span><b>Alertas de viajes nuevos</b> en las rutas que has pedido en "Pide transporte". Como mucho una al día. ${prefs.route_alerts && prefs.route_alerts_until ? `Activas hasta el ${esc(fmtDayShort(prefs.route_alerts_until))}; se apagan solas.` : "Se apagan solas a los 15 días."}${!sigs.length ? ` Para recibirlas, <a href="#/transporte">firma una ruta</a>.` : ""}</span></label>
     </div>` : ""}
     <div class="panel box" style="margin-top:${prefs ? "16px" : "56px"}">
@@ -2474,7 +2492,7 @@ function viewLegal(which){
         <li>Crear y gestionar tu cuenta, publicar viajes, apuntarte a ellos y comunicarte en el grupo: <strong>ejecución del servicio que solicitas</strong> (art. 6.1.b RGPD).</li>
         <li>Garantizar la seguridad del servicio y prevenir abusos: <strong>interés legítimo</strong> (art. 6.1.f RGPD).</li>
         <li>Atender reportes y comunicaciones: <strong>interés legítimo y consentimiento</strong>.</li>
-        <li>Enviarte avisos por correo sobre los viajes en los que participas (cancelaciones, cambios, confirmaciones y pasajeros): <strong>ejecución del servicio</strong> (art. 6.1.b RGPD). Puedes desactivarlos en "Mis viajes" o con el enlace de cada correo.</li>
+        <li>Enviarte avisos por correo sobre los viajes en los que participas (cancelaciones, cambios, confirmaciones y pasajeros), solo si los pides: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al publicar o al apuntarte, o en "Mis viajes". Puedes retirarlo en "Mis viajes" o con el enlace de cada correo.</li>
         <li>Enviarte alertas de viajes nuevos en las rutas que has pedido: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al firmar. Duran 15 días y puedes retirarlas en cualquier momento.</li>
         <li>Enviarte un correo de agradecimiento después de un viaje que conduces: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al publicarlo.</li>
       </ul>
