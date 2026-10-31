@@ -89,12 +89,18 @@ function compose(j: Job) {
     }
     case "gracias": {
       const n = Number(j.extra.riders || 0);
-      subject = `Gracias por hacer hueco en tu viaje a ${t.dest_city}`;
-      lines = [`Esperamos que el viaje de ${route} del ${day(t.departure_at)} fuera bien. Llevaste a ${n === 1 ? "una persona" : `${n} personas`}: gracias por hacer hueco.`,
-        "Esto solo funciona porque gente como tú pone su coche al servicio de los demás, y en estos días se nota mucho.",
-        "Si durante el viaje pasó algo que debamos saber, entra en el viaje y pulsa \"repórtalo\". Lo leemos todo.",
-        "Y si también vuelves, puedes publicar la vuelta en un minuto."];
-      cta = { label: "Publicar la vuelta", url: `${SITE}/#/publicar?vuelta=${t.id}` };
+      subject = n > 0 ? `Gracias por hacer hueco en tu viaje a ${t.dest_city}` : `Gracias por ofrecer tu hueco hasta ${t.dest_city}`;
+      lines = n > 0
+        ? [`Esperamos que el viaje de ${route} del ${day(t.departure_at)} fuera bien. Llevaste a ${n === 1 ? "una persona" : `${n} personas`}: gracias por hacer hueco.`,
+           "Esto solo funciona porque gente como tú pone su coche al servicio de los demás, y en estos días se nota mucho.",
+           "Si durante el viaje pasó algo que debamos saber, entra en el viaje y pulsa \"repórtalo\". Lo leemos todo.",
+           "Y si también vuelves, puedes publicar la vuelta en un minuto."]
+        : [`Tu viaje de ${route} del ${day(t.departure_at)} ya ha pasado. Esta vez nadie se apuntó, pero queríamos darte las gracias igualmente por ofrecer tu hueco.`,
+           "Cada viaje publicado cuenta: es lo que hace que quien lo necesita vuelva a buscar aquí y acabe encontrando cómo moverse.",
+           "Si vuelves a hacer el trayecto, publícalo otra vez. A veces la plaza se llena al segundo intento."];
+      cta = n > 0
+        ? { label: "Publicar la vuelta", url: `${SITE}/#/publicar?vuelta=${t.id}` }
+        : { label: "Publicar el trayecto otra vez", url: `${SITE}/#/publicar?o=${encodeURIComponent(t.origin_city)}&d=${encodeURIComponent(t.dest_city)}` };
       break;
     }
     case "alerta": {
