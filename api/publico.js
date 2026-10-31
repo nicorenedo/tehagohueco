@@ -27,20 +27,18 @@ module.exports = async (req, res) => {
   const tripsUrl = `${SUPABASE_URL}/rest/v1/trips?select=${encodeURIComponent(TRIP_SELECT)}` +
     `&departure_at=gte.${encodeURIComponent(since)}&status=neq.cancelado&order=departure_at.asc&limit=1000`;
   try {
-    const [trips, demand] = await Promise.all([
-      getJson(tripsUrl, { headers }),
-      getJson(`${SUPABASE_URL}/rest/v1/rpc/demand_stats`, {
-        method: "POST",
-        headers: Object.assign({ "Content-Type": "application/json" }, headers),
-        body: "{}"
-      }).catch(() => null)
-    ]);
+    const rpc = name => getJson(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, headers),
+      body: "{}"
+    }).catch(() => null);
+    const [trips, demand, impact] = await Promise.all([getJson(tripsUrl, { headers }), rpc("demand_stats"), rpc("impact_stats")]);
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     // El navegador no guarda copia; la CDN de Vercel sí: 15 s fresca y hasta 2 min sirviendo la anterior mientras se renueva.
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     res.setHeader("Vercel-CDN-Cache-Control", "max-age=15, stale-while-revalidate=120");
     res.statusCode = 200;
-    res.end(JSON.stringify({ at: new Date().toISOString(), trips, demand }));
+    res.end(JSON.stringify({ at: new Date().toISOString(), trips, demand, impact }));
   } catch (err) {
     console.error("publico:", err && err.message);
     res.setHeader("Cache-Control", "no-store");

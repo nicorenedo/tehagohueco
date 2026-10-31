@@ -149,6 +149,9 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .hero h1 .line span{display:block;transform:translateY(110%);animation:rise 900ms var(--ease-out) forwards}
 .hero h1 .line:nth-child(2) span{animation-delay:110ms;color:var(--accent)}
 .hero .foot{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:24px;margin-top:32px;opacity:0;animation:fade 700ms var(--ease-out) 650ms forwards}
+.hero .impact{margin:0 0 18px;font-size:var(--step-small);color:var(--field-soft);max-width:44ch}
+.hero .impact:empty{display:none}
+.hero .impact b{color:var(--accent);font-weight:700;font-size:1.15em}
 .hero .memorial{font-size:var(--step-small);color:var(--field-soft);max-width:34ch;margin:0}
 .hero .memorial b{display:block;color:var(--field-ink);font-weight:500;font-size:var(--step-body)}
 .hero .lead{justify-self:end;text-align:right;max-width:30ch;display:grid;gap:18px;justify-items:end}
@@ -898,12 +901,12 @@ async function fetchPublic(){
     }catch(_){}
   }
   const since = new Date(Date.now()-2*3600e3).toISOString();
-  const [tr, dm] = await Promise.all([
+  const [tr, dm, im] = await Promise.all([
     sb.from("trips").select(PUBLIC_COLS).gte("departure_at", since).neq("status","cancelado").order("departure_at", { ascending:true }).limit(1000),
-    sb.rpc("demand_stats")
+    sb.rpc("demand_stats"), sb.rpc("impact_stats")
   ]);
   if(tr.error) throw tr.error;
-  return { trips: tr.data || [], demand: dm.error ? null : dm.data };
+  return { trips: tr.data || [], demand: dm.error ? null : dm.data, impact: im.error ? null : im.data };
 }
 function publicData(){
   if(pubData && Date.now() - pubAt < PUB_TTL) return Promise.resolve(pubData);
@@ -1328,6 +1331,7 @@ function viewHome(p){
       <p class="memorial"><b>En memoria de las víctimas de Urda, 28 de octubre de 2026.</b>Un abrazo a sus familias y a quienes siguen trabajando allí.</p>
       <div class="lead">
         <p>Coche compartido, sin ánimo de lucro, mientras no haya trenes entre Madrid y Andalucía. Si te sobran plazas, alguien las necesita.</p>
+        <p class="impact" id="impactLine" aria-live="polite"></p>
         <a class="btn accent" href="#/publicar">Publicar mis plazas libres</a>
       </div>
     </div>
@@ -1638,6 +1642,13 @@ function viewHome(p){
     </div>`;
     $("#nudge .nudge-x").onclick = () => { try{ sessionStorage.setItem("thh_nudge_off","1"); }catch(_){} $("#nudge").innerHTML = ""; };
   }
+  async function loadImpact(){
+    const d = await publicData().catch(() => null), im = d && d.impact, el = $("#impactLine");
+    if(!el || !im || !im.seats) return;
+    const n = x => Number(x).toLocaleString("es-ES");
+    el.innerHTML = `<b>${n(im.seats)}</b> ${im.seats === 1 ? "plaza ofrecida" : "plazas ofrecidas"} por <b>${n(im.drivers)}</b> ${im.drivers === 1 ? "conductor" : "conductores"}` +
+      (im.riders ? ` y <b>${n(im.riders)}</b> ${im.riders === 1 ? "persona que ya tiene" : "personas que ya tienen"} hueco en un coche.` : ".");
+  }
   async function loadDemand(){
     const st = await api.demandStats();
     showNudge(st);
@@ -1654,7 +1665,7 @@ function viewHome(p){
       $("#dueBanner").innerHTML = `<div class="notice">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar":`Tienes ${due.length} viajes por confirmar`}.</b> Si no confirmas 12 horas antes de salir, la plaza se libera. <a href="#/mis-viajes">Confirmar ahora</a></div></div>`;
     }
   }
-  loadResults(); loadPoster(); loadDemand(); loadDue(); watchReveals();
+  loadResults(); loadPoster(); loadDemand(); loadImpact(); loadDue(); watchReveals();
   cleanup = () => { if(mapInst){ mapInst.remove(); mapInst = null; } document.body.classList.remove("home"); };
 }
 
