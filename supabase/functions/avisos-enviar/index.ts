@@ -1,4 +1,6 @@
-// Te Hago Hueco · envío de avisos por correo (Brevo).
+// Te Hago Hueco · envío de avisos por correo.
+// Proveedor: Resend (sin seguimiento de aperturas ni clics, dominio en la región UE).
+// No usamos Brevo: en su plan gratuito no se puede desactivar el seguimiento.
 // La despierta pg_cron (avisos.tick) cada 10 minutos cuando hay avisos pendientes.
 // Reglas (preferencias, límites, horario, validez) en avisos.claim(); aquí solo se redacta y se envía.
 // Sin seguimiento propio: no añadimos píxeles ni enlaces de seguimiento.
@@ -132,25 +134,34 @@ Te Hago Hueco es una iniciativa solidaria sin ánimo de lucro. Si respondes a es
   return { subject, html, text, unsubUrl };
 }
 
-async function send(j: Job, key: string) {
+function unsubHeaders(url: string) {
+  return {
+    "List-Unsubscribe": `<${url}>, <mailto:${REPLY_TO.email}?subject=Baja%20de%20avisos>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
+  };
+}
+
+async function sendResend(j: Job, key: string) {
   const m = compose(j);
-  const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
+    headers: {
+      authorization: `Bearer ${key}`, "content-type": "application/json",
+      // Si un reintento llega a Resend dos veces, solo envía una (válido 24 h).
+      "idempotency-key": `avisos-${j.id}`
+    },
     body: JSON.stringify({
-      sender: FROM, replyTo: REPLY_TO,
-      to: [{ email: j.email, ...(j.name ? { name: j.name } : {}) }],
-      subject: m.subject, htmlContent: m.html, textContent: m.text,
-      headers: {
-        "List-Unsubscribe": `<${m.unsubUrl}>, <mailto:${REPLY_TO.email}?subject=Baja%20de%20avisos>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
-      },
-      tags: [j.kind]
+      from: `${FROM.name} <${FROM.email}>`,
+      reply_to: REPLY_TO.email,
+      to: [j.name ? `${j.name.replace(/[<>"]/g, "")} <${j.email}>` : j.email],
+      subject: m.subject, html: m.html, text: m.text,
+      headers: unsubHeaders(m.unsubUrl),
+      tags: [{ name: "tipo", value: j.kind }]
     })
   });
   const body = await r.text();
-  if (!r.ok) throw new Error(`Brevo ${r.status}: ${body.slice(0, 300)}`);
-  try { return JSON.parse(body).messageId || null; } catch { return null; }
+  if (!r.ok) throw new Error(`Resend ${r.status}: ${body.slice(0, 300)}`);
+  try { return "resend:" + (JSON.parse(body).id || ""); } catch { return "resend:"; }
 }
 
 Deno.serve(async (req) => {
@@ -160,14 +171,16 @@ Deno.serve(async (req) => {
   const [{ ok }] = await sql`select coalesce((select decrypted_secret = ${given} from vault.decrypted_secrets where name = 'avisos_cron'), false) as ok`;
   if (!ok) return new Response("Unauthorized", { status: 401 });
 
-  const key = Deno.env.get("BREVO_API_KEY");
-  if (!key) return Response.json({ ok: false, error: "Falta BREVO_API_KEY" }, { status: 503 });
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) return Response.json({ ok: false, error: "Falta RESEND_API_KEY" }, { status: 503 });
+  const send = (j: Job) => sendResend(j, resendKey);
 
   let sent = 0, failed = 0;
   const rows = await sql`select avisos.claim(40) as j`;
   for (const { j } of rows as unknown as { j: Job }[]) {
+    if (sent + failed > 0) await new Promise(r => setTimeout(r, 600)); // Resend: máx. 2 por segundo
     try {
-      const id = await send(j, key);
+      const id = await send(j);
       await sql`select avisos.mark(${j.id}, true, null, ${id})`;
       sent++;
     } catch (e) {
