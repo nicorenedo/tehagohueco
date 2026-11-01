@@ -606,6 +606,11 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 /* Red de seguridad: nada del contenido puede ensanchar la página en el móvil. */
 main#app{overflow-x:clip}
 #ayudar{scroll-margin-top:84px}
+.sig-card{position:relative;margin-bottom:16px;padding-right:44px}
+.sig-card-x{position:absolute;top:8px;right:8px;width:32px;height:32px;display:grid;place-items:center;border:0;background:transparent;border-radius:999px;cursor:pointer;color:inherit}
+.pre-matches{background:var(--paper);border-radius:14px;padding:14px;margin:14px 0 0;display:grid;gap:10px}
+.pre-matches .trows{display:grid;gap:8px}
+.pre-matches p{margin:0}
 </style>
 </head>
 <body>
@@ -1187,7 +1192,7 @@ const api = {
   async mySignatures(){
     if(!me) return [];
     if(DEMO) return demoState.signatures.slice();
-    const { data } = await sb.from("demand_signatures").select("origin_city, dest_city, need, created_at").eq("user_id", me.id).order("created_at");
+    const { data } = await sb.from("demand_signatures").select("origin_city, dest_city, need, travel_date, created_at").eq("user_id", me.id).order("created_at");
     return data || [];
   },
   async notifyPrefs(){
@@ -1209,9 +1214,9 @@ const api = {
     if(error) throw error;
     return data;
   },
-  async sign(origin, dest, need, pts){
-    if(DEMO){ demoState.signatures = demoState.signatures.filter(x=>!(x.origin_city===origin && x.dest_city===dest)); demoState.signatures.push({ origin_city:origin, dest_city:dest, need, created_at:new Date().toISOString() }); return; }
-    const row = { user_id: me.id, origin_city: origin, dest_city: dest, need };
+  async sign(origin, dest, need, pts, travelDate){
+    if(DEMO){ demoState.signatures = demoState.signatures.filter(x=>!(x.origin_city===origin && x.dest_city===dest)); demoState.signatures.push({ origin_city:origin, dest_city:dest, need, travel_date: travelDate || null, created_at:new Date().toISOString() }); return; }
+    const row = { user_id: me.id, origin_city: origin, dest_city: dest, need, travel_date: travelDate || null };
     if(pts && pts.o && pts.d) Object.assign(row, { origin_lat: pts.o.lat, origin_lng: pts.o.lng, dest_lat: pts.d.lat, dest_lng: pts.d.lng });
     const { error } = await sb.from("demand_signatures").upsert(row);
     if(error) throw error;
@@ -1393,20 +1398,21 @@ function groupDays(rows, flat){
   return `<div class="days">${days.map(g => `<div class="day"><h4 class="day-h">${esc(dayLabel(g.t))}</h4>${wrap(g.rows.map(item).join(""))}</div>`).join("")}</div>`;
 }
 /* Viajes con plazas cuyo origen y destino están a menos de 35 km de un trayecto pedido */
-async function tripsFor(o, d, limit = 4){
+async function tripsFor(o, d, limit = 4, date = null){
   await loadPlaces().catch(() => {});
   const qo = findPlace(o), qd = findPlace(d);
   const trips = await publicData().then(x => x.trips).catch(() => []);
   const now = Date.now();
   const ok = (name, lat, lng, q, qp) => name === q || (qp && lat != null && haversine({ lat, lng }, qp) <= 35);
+  const dayOk = t => { if(!date) return true; const a = new Date(date + "T12:00:00"), b = new Date(t.departure_at); return Math.abs(Math.round((new Date(b.getFullYear(), b.getMonth(), b.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5)) <= 1; };
   return trips.filter(t => t.status !== "cancelado" && t.seats_total - t.seats_taken > 0 && new Date(t.departure_at).getTime() > now
-      && ok(t.origin_city, t.origin_lat, t.origin_lng, o, qo) && ok(t.dest_city, t.dest_lat, t.dest_lng, d, qd))
+      && ok(t.origin_city, t.origin_lat, t.origin_lng, o, qo) && ok(t.dest_city, t.dest_lat, t.dest_lng, d, qd) && dayOk(t))
     .sort((a, b) => new Date(a.departure_at) - new Date(b.departure_at)).slice(0, limit);
 }
 async function sigMatchesHtml(sigs){
   const blocks = [];
   for(const s of sigs){
-    const m = await tripsFor(s.origin_city, s.dest_city);
+    const m = await tripsFor(s.origin_city, s.dest_city, 4, s.travel_date);
     if(m.length) blocks.push(`<div class="sm-block"><h4>${esc(s.origin_city)} → ${esc(s.dest_city)}</h4><div class="trows">${m.map(t => tripRow(t, true)).join("")}</div></div>`);
   }
   return blocks.length ? `<div class="panel box sig-matches" id="sigMatchesBox"><h3>Viajes que te pueden servir</h3><p class="small muted">Para los trayectos que has pedido, con salida y llegada a menos de 35 km. Entra en uno para apuntarte.</p>${blocks.join("")}</div>` : "";
@@ -1465,6 +1471,7 @@ function viewHome(p){
   </section>
   <section class="search-band" id="buscar" aria-label="Buscar viaje">
     <div id="dueBanner" style="margin-bottom:16px"></div>
+    <div id="sigCard"></div>
     <form class="search" id="searchForm">
       <div class="origin">${placeField("fo", "Salgo de", p.o, { any:true })}</div>
       <button type="button" class="swap" id="swap" aria-label="Intercambiar origen y destino"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3"/></svg></button>
@@ -1779,7 +1786,21 @@ function viewHome(p){
       $("#dueBanner").innerHTML = `<div class="notice">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar":`Tienes ${due.length} viajes por confirmar`}.</b> Así el conductor sabe que cuenta contigo. <a href="#/mis-viajes">Confirmar ahora</a></div></div>`;
     }
   }
-  loadResults(); loadDemand(); loadImpact(); loadDue(); watchReveals();
+  async function loadSigCard(){
+    if(!me || !$("#sigCard")) return;
+    try{ if(sessionStorage.getItem("thh_sigcard_off")) return; }catch(_){}
+    const sigs = await api.mySignatures().catch(() => []);
+    if(!sigs.length) return;
+    const found = [];
+    for(const x of sigs){ const m = await tripsFor(x.origin_city, x.dest_city, 50, x.travel_date); if(m.length) found.push({ x, n: m.length }); }
+    if(!found.length || !$("#sigCard")) return;
+    found.sort((a, b) => b.n - a.n);
+    const top = found[0], rest = found.slice(1).reduce((a, f) => a + f.n, 0);
+    const q = `#/buscar?o=${encodeURIComponent(top.x.origin_city)}&d=${encodeURIComponent(top.x.dest_city)}`;
+    $("#sigCard").innerHTML = `<div class="notice sig-card">${ICON.info}<div><b>${top.n === 1 ? "Hay 1 viaje que podría servirte" : `Hay ${top.n} viajes que podrían servirte`}</b> para ${esc(top.x.origin_city)} → ${esc(top.x.dest_city)}, la ruta que pediste. <a href="${q}">Ver ${top.n === 1 ? "el viaje" : "los viajes"}</a>${rest ? ` · <a href="#/mis-viajes">${rest === 1 ? "1 más" : rest + " más"} en tus otras rutas</a>` : ""}</div><button type="button" class="sig-card-x" aria-label="Cerrar">${X_ICON}</button></div>`;
+    $("#sigCard .sig-card-x").onclick = () => { $("#sigCard").innerHTML = ""; try{ sessionStorage.setItem("thh_sigcard_off", "1"); }catch(_){} };
+  }
+  loadResults(); loadDemand(); loadImpact(); loadDue(); loadSigCard(); watchReveals();
   document.querySelectorAll(".faq .acc-btn").forEach(b => b.onclick = () => {
     const row = b.closest(".row"), open = !row.classList.contains("open");
     row.classList.toggle("open", open); b.setAttribute("aria-expanded", String(open));
@@ -2309,7 +2330,7 @@ async function viewMine(){
     ${dr.length ? `<div class="trips">${dr.map((t,i)=>`<div class="trip-wrap">${tripCard(t,i)}<div class="trip-actions"><a class="btn sm" href="#/editar/${t.id}">Editar</a><a class="btn sm secondary" href="#/viaje/${t.id}">Ver pasajeros</a></div></div>`).join("")}</div>` : `<div class="empty"><p>Todavía no has publicado ningún viaje. <a href="#/publicar">Publica tus plazas libres</a>.</p></div>`}
     <div id="mineMatches" style="margin-top:40px"></div>
     <h2 style="margin-top:40px">Mis firmas</h2>
-    ${sigs.length ? `<ul class="sig-list">${sigs.map(x=>`<li><span><b>${esc(x.origin_city)} → ${esc(x.dest_city)}</b> <span class="muted small">${NEED[x.need]||""}</span></span><button class="btn sm secondary" data-unsign="${esc(x.origin_city)}|${esc(x.dest_city)}">Retirar firma</button></li>`).join("")}</ul>` : `<div class="empty"><p>No has firmado ningún trayecto. Si te falta cómo viajar, <a href="#/transporte">déjalo por escrito</a>.</p></div>`}
+    ${sigs.length ? `<ul class="sig-list">${sigs.map(x=>`<li><span><b>${esc(x.origin_city)} → ${esc(x.dest_city)}</b> <span class="muted small">${NEED[x.need]||""}${x.travel_date ? " · " + esc(fmtDayShort(x.travel_date + "T12:00:00")) : ""}</span></span><button class="btn sm secondary" data-unsign="${esc(x.origin_city)}|${esc(x.dest_city)}">Retirar firma</button></li>`).join("")}</ul>` : `<div class="empty"><p>No has firmado ningún trayecto. Si te falta cómo viajar, <a href="#/transporte">déjalo por escrito</a>.</p></div>`}
     ${prefs ? `<div class="panel box" id="avisos" style="margin-top:56px">
       <h3>Avisos por correo</h3>
       <p class="muted small">Te escribimos a ${esc(me.email || "tu correo de Google")} desde avisos@tehagohueco.es. Como mucho tres al día, salvo cancelaciones de última hora, y nunca publicidad.</p>
@@ -2401,6 +2422,8 @@ async function viewTransport(p){
             ${placeField("so", "Desde", p.o || "Madrid", { required:true })}
             ${placeField("sd", "Hasta", p.d || "", { required:true, placeholder:"Ej.: Martos" })}
           </div>
+          <div class="field" style="margin-top:14px"><label for="sdate">¿Para qué día? (opcional)</label><input type="date" id="sdate" min="${new Date().toISOString().slice(0,10)}"><span class="hint">Solo lo usamos para avisarte de viajes que encajen. No se publica.</span></div>
+          <div id="preMatches" aria-live="polite"></div>
           <fieldset style="margin:18px 0 18px">
             <legend class="small" style="font-size:var(--step-small);font-weight:500;color:var(--muted);margin-bottom:8px">¿Con qué frecuencia lo necesitas?</legend>
             <div class="chips" id="needChips">${["diario","semanal","puntual"].map((n,i)=>`<button type="button" class="chip${i===1?" on":""}" data-need="${n}">${NEED_LABEL[n]}</button>`).join("")}</div>
@@ -2423,7 +2446,21 @@ async function viewTransport(p){
     if(ex){ need = ex.need; document.querySelectorAll("#needChips .chip").forEach(x => x.classList.toggle("on", x.dataset.need === need)); }
     if(me) $("#signBtn").textContent = ex ? "Actualizar mi firma" : "Firmar este trayecto";
   };
-  bindPlace("so", syncBtn); bindPlace("sd", syncBtn); syncBtn();
+  let preSeq = 0;
+  const showPre = async () => {
+    const box = $("#preMatches"); if(!box) return;
+    const so = readPlace("so"), sd = readPlace("sd"), seq = ++preSeq;
+    if(!so || !sd || so.invalid || sd.invalid || so.label === sd.label){ box.innerHTML = ""; return; }
+    const date = $("#sdate")?.value || null;
+    const all = await tripsFor(so.label, sd.label, 50, date);
+    if(seq !== preSeq || !$("#preMatches")) return;
+    if(!all.length){ box.innerHTML = ""; return; }
+    const q = `#/buscar?o=${encodeURIComponent(so.label)}&d=${encodeURIComponent(sd.label)}`;
+    box.innerHTML = `<div class="pre-matches"><b>Antes de firmar: ${all.length === 1 ? "hay 1 viaje que podría servirte" : `hay ${all.length} viajes que podrían servirte`}.</b><div class="trows">${all.slice(0, 3).map(t => tripRow(t, true)).join("")}</div>${all.length > 3 ? `<a href="${q}">Ver los ${all.length} viajes</a>` : ""}<p class="small muted">Si ninguno te encaja, firma igualmente: así se ve que hace falta transporte en esta ruta.</p></div>`;
+  };
+  bindPlace("so", () => { syncBtn(); showPre(); }); bindPlace("sd", () => { syncBtn(); showPre(); }); syncBtn();
+  if($("#sdate")) $("#sdate").addEventListener("change", showPre);
+  loadPlaces().then(showPre).catch(() => {});
   $("#signForm").onsubmit = async e => {
     e.preventDefault();
     await loadPlaces();
@@ -2434,10 +2471,11 @@ async function viewTransport(p){
     if(o === d){ toast("Origen y destino no pueden ser la misma localidad", "err"); return; }
     const pts = { o: { lat: so.lat, lng: so.lng }, d: { lat: sd.lat, lng: sd.lng } };
     const wantAlerts = !!$("#alertOpt")?.checked;
-    if(!me){ try{ sessionStorage.setItem("thh_pending_sign", JSON.stringify({ o, d, need, pts, alerts: wantAlerts })); }catch(_){} return api.signIn(); }
+    const travelDate = $("#sdate")?.value || null;
+    if(!me){ try{ sessionStorage.setItem("thh_pending_sign", JSON.stringify({ o, d, need, pts, alerts: wantAlerts, date: travelDate })); }catch(_){} return api.signIn(); }
     $("#signBtn").disabled = true;
     try{
-      await api.sign(o, d, need, pts);
+      await api.sign(o, d, need, pts, travelDate);
       if(wantAlerts) await api.setNotifyPrefs(null, true).catch(() => {});
       toast(wantAlerts ? "Gracias. Te avisaremos si sale un viaje." : mineSet.has(o+"|"+d) ? "Firma actualizada" : "Gracias. Tu firma cuenta.", "ok");
     }catch(err){ toast(err.message, "err"); }
@@ -2457,7 +2495,7 @@ async function resumePendingSign(){
   let p = null; try{ p = JSON.parse(sessionStorage.getItem("thh_pending_sign")||"null"); sessionStorage.removeItem("thh_pending_sign"); }catch(_){}
   if(!p) return;
   try{
-    await api.sign(p.o, p.d, p.need, p.pts);
+    await api.sign(p.o, p.d, p.need, p.pts, p.date);
     if(p.alerts) await api.setNotifyPrefs(null, true).catch(() => {});
     toast(p.alerts ? "Gracias. Te avisaremos si sale un viaje." : "Gracias. Tu firma cuenta.", "ok");
   }catch(_){}
