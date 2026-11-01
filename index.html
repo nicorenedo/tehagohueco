@@ -36,6 +36,14 @@ window.CAMINO_CONFIG = {
   supabaseUrl: "https://dbmqyczwjuahlydbfgtm.supabase.co",
   supabaseAnonKey: "sb_publishable_IBV9ny5inC9MFPl5kJE1mw_Ql3Epku3",
   contactEmail: "tehagohueco.contacto@gmail.com",
+  /* Costes de mantenimiento que se piden en "Cómo ayudar". Cuando alguien cubra uno, rellena coveredBy. */
+  helpCosts: [
+    { name: "Alojamiento de la web", service: "Vercel Pro", what: "Que la web aguante miles de visitas al día sin caerse.", monthly: 20, coveredBy: "" },
+    { name: "Base de datos y cuentas", service: "Supabase Pro", what: "Guardar viajes y cuentas de forma segura, con copias de seguridad diarias.", monthly: 25, coveredBy: "" },
+    { name: "Avisos por correo", service: "Resend Pro", what: "Enviar los avisos de cancelaciones y cambios sin límite diario.", monthly: 20, coveredBy: "" }
+  ],
+  /* Marcas y asociaciones que han ayudado: { name: "…", what: "…", url: "https://…" } */
+  supporters: [],
   // Clave gratuita de CARTO Basemaps (carto.com/basemaps/apikey). Sin ella se usa el mapa de OpenStreetMap.
   cartoKey: "cb1_4y9m_1_7ef91c86fca44576d075a8ba",
   siteName: "Te Hago Hueco",
@@ -136,7 +144,7 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 }
 
 /* ---------- Héroe (inicio) ---------- */
-.hero{position:relative;min-height:100svh;background:var(--field);color:var(--field-ink);display:grid;grid-template-rows:auto 1fr auto;padding:24px var(--m) 40px}
+.hero{position:relative;min-height:100svh;background:var(--field);color:var(--field-ink);display:grid;grid-template-rows:auto 1fr auto;padding:24px var(--m) 60px}
 .hero .topline{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:var(--step-small);font-weight:500}
 .hero .topline .mono{font-weight:700;letter-spacing:-.02em;font-size:1rem;display:inline-flex;align-items:center}
 .brand{display:inline-flex;align-items:center}
@@ -157,6 +165,8 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
 .hero .memorial{font-size:var(--step-small);color:var(--field-soft);max-width:34ch;margin:0}
 .hero .memorial b{display:block;color:var(--field-ink);font-weight:500;font-size:var(--step-body)}
 .hero .lead{justify-self:end;text-align:right;max-width:30ch;display:grid;gap:18px;justify-items:end}
+.hero .help-link{position:absolute;right:var(--m);bottom:14px;font-size:var(--step-small);color:var(--field-ink);text-decoration:none;border:1.5px solid rgba(233,227,216,.35);border-radius:999px;padding:8px 14px;line-height:1.2;transition:border-color 160ms var(--ease)}
+@media (hover:hover){.hero .help-link:hover{border-color:var(--accent)}}
 .hero .lead p{margin:0;font-size:clamp(1.0625rem,1rem + .4vw,1.3rem);line-height:1.4;color:var(--field-ink)}
 @keyframes rise{to{transform:none}}
 @keyframes fade{to{opacity:1}}
@@ -168,6 +178,7 @@ body.home.past-hero header.top{transform:none;visibility:visible;transition:tran
   .hero .lead{justify-self:start;text-align:left;justify-items:start;max-width:none;gap:clamp(10px,1.8svh,18px)}
   .hero .lead p{font-size:clamp(.98rem,2.3svh,1.12rem);line-height:1.38}
   .hero .memorial{order:2;font-size:.78rem}
+  .hero .help-link{position:static;justify-self:end;order:3;font-size:.8rem;padding:7px 12px;margin-top:-4px}
   .hero .memorial b{font-size:.92rem}
 }
 
@@ -600,6 +611,13 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .done-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0}
 /* Red de seguridad: nada del contenido puede ensanchar la página en el móvil. */
 main#app{overflow-x:clip}
+.legal .help-costs{list-style:none;padding:0;margin:16px 0 10px;max-width:62ch;display:grid;gap:10px}
+.help-costs li{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;background:var(--surface);border-radius:14px;padding:14px 16px}
+.help-costs .hc-price{text-align:right;white-space:nowrap;font-weight:600}
+.help-costs .hc-ok{color:var(--ok);font-weight:600;white-space:normal}
+.help-costs li.covered{background:var(--ok-soft)}
+#ayudar{scroll-margin-top:84px}
+@media (max-width:520px){.help-costs li{flex-direction:column;gap:6px}.help-costs .hc-price{text-align:left}}
 </style>
 </head>
 <body>
@@ -643,6 +661,7 @@ main#app{overflow-x:clip}
       <li><a href="#/mis-viajes">Mis viajes</a></li>
       <li><a href="#/transporte">Pide más transporte</a></li>
       <li><a href="#/como-funciona">Cómo funciona</a></li>
+      <li><a href="#/como-funciona?ir=ayudar">Cómo ayudar</a></li>
     </ul>
     <ul>
       <li>Información oficial</li>
@@ -1341,7 +1360,7 @@ async function route(){
   if(path.startsWith("/viaje/")) return viewTrip(path.split("/")[2]);
   if(path.startsWith("/editar/")) return viewPublish(path.split("/")[2]);
   if(path === "/mis-viajes") return viewMine();
-  if(path === "/como-funciona") return viewHow();
+  if(path === "/como-funciona") return viewHow(params);
   if(path === "/legal/aviso") return viewLegal("aviso");
   if(path === "/legal/privacidad") return viewLegal("privacidad");
   if(path === "/legal/condiciones") return viewLegal("condiciones");
@@ -1448,6 +1467,7 @@ function viewHome(p){
     <h1 aria-label="Te hago hueco"><span class="line"><span>Te hago</span></span><span class="line"><span>hueco.</span></span></h1>
     <div class="foot">
       <p class="memorial"><b>En memoria de las víctimas de Urda, 28 de octubre de 2026.</b>Un abrazo a sus familias y a quienes siguen trabajando allí.</p>
+      <a class="help-link" href="#/como-funciona?ir=ayudar">¿Quieres ayudar a mantener la web? <span aria-hidden="true">→</span></a>
       <div class="lead">
         <p>Coche compartido, sin ánimo de lucro, mientras no haya trenes entre Madrid y Andalucía. Si te sobran plazas, alguien las necesita.</p>
         <p class="impact" id="impactLine" aria-live="polite"></p>
@@ -2456,7 +2476,32 @@ async function resumePendingSign(){
 }
 
 /* ---------------- Vista: cómo funciona ---------------- */
-function viewHow(){
+function helpSection(){
+  const costs = CFG.helpCosts || [], sup = CFG.supporters || [];
+  const usd = n => `${n.toLocaleString("es-ES")} $`;
+  const pending = costs.filter(c => !c.coveredBy);
+  const monthly = pending.reduce((a, c) => a + c.monthly, 0);
+  return `<h2 id="ayudar">Cómo ayudar</h2>
+    <p>${esc(CFG.siteName)} es gratis para todo el mundo: no tiene publicidad ni cobra comisiones a quien conduce o a quien viaja, y no lo va a hacer.</p>
+    <h3>Si vas a viajar</h3>
+    <ul>
+      <li>Si tienes plazas libres, <a href="#/publicar">publícalas</a>. Es la mejor ayuda posible.</li>
+      <li>Comparte la web con quien la pueda necesitar.</li>
+      <li>Si no encuentras viaje, <a href="#/transporte">firma tu ruta</a> para que se vea la demanda.</li>
+    </ul>
+    <h3>Si no vas a viajar pero quieres ayudar</h3>
+    <p>Mantener la web funcionando con tanto tráfico, y con los datos de todos bien protegidos, tiene unos costes de suscripción. Si eres una marca, una empresa o una asociación y quieres cubrir alguno, escríbenos a <a href="mailto:${esc(CFG.contactEmail)}">${esc(CFG.contactEmail)}</a>.</p>
+    <ul class="help-costs">${costs.map(c => `<li class="${c.coveredBy ? "covered" : ""}">
+      <div><b>${esc(c.name)}</b> <span class="muted">(${esc(c.service)})</span><br><span class="small muted">${esc(c.what)}</span></div>
+      <div class="hc-price">${c.coveredBy ? `<span class="hc-ok">Cubierto por ${esc(c.coveredBy)}</span>` : `${usd(c.monthly)} al mes<br><span class="small muted">${usd(c.monthly * 12)} al año</span>`}</div>
+    </li>`).join("")}</ul>
+    ${pending.length ? `<p class="small muted">En total, ${usd(monthly)} al mes, unos ${usd(monthly * 12)} al año. Se pagan en dólares a cada proveedor.</p>` : `<p class="small muted">Ahora mismo todos los costes están cubiertos. Gracias.</p>`}
+    <p>Preferimos que cubras directamente una suscripción, pagándola o regalándonos créditos, antes que recibir dinero. Y no aceptaremos más de lo necesario: cuando un coste quede cubierto, lo indicaremos aquí y dejaremos de pedirlo.</p>
+    <h3>Quién nos ayuda</h3>
+    ${sup.length ? `<ul>${sup.map(x => `<li><b>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</b>${x.what ? `: ${esc(x.what)}` : ""}</li>`).join("")}</ul><p class="small muted">Gracias de corazón por hacerlo posible.</p>`
+      : `<p>Las marcas y asociaciones que colaboren aparecerán aquí, con lo que han cubierto, como agradecimiento.</p>`}`;
+}
+function viewHow(params = {}){
   setNav("como-funciona");
   app.innerHTML = `<section class="page narrow"><div class="wrap legal">
     <h1>Cómo funciona</h1>
@@ -2488,9 +2533,11 @@ function viewHow(){
     </ul>
     <h2>Lo que esta web no es</h2>
     <p>No somos una empresa de transporte ni una agencia. No verificamos vehículos, conductores ni pasajeros más allá del inicio de sesión con Google, y no somos parte del acuerdo que alcancéis entre vosotros. Lee las <a href="#/legal/condiciones">condiciones de uso</a>.</p>
+    ${helpSection()}
     <h2>Información oficial</h2>
     <p>Consulta el estado de la línea y las alternativas que ofrecen las operadoras en los canales oficiales de <a href="https://www.adif.es" target="_blank" rel="noopener">Adif</a> y <a href="https://www.renfe.com" target="_blank" rel="noopener">Renfe</a>.</p>
   </div></section>`;
+  if(params.ir === "ayudar") setTimeout(() => document.getElementById("ayudar")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
 }
 
 /* ---------------- Vistas legales ---------------- */
