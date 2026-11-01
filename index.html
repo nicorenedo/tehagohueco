@@ -600,6 +600,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .join-notify{margin:12px 0 0;color:var(--muted)}
 .join-notify input{margin-top:3px}
 .done-ask p{margin:6px 0 12px}
+.fb-line{margin:12px 0 0}
 .done-btns{display:flex;gap:8px;flex-wrap:wrap}
 .done-list ul{list-style:none;margin:12px 0 0;padding:0}
 .done-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0}
@@ -1145,6 +1146,23 @@ const api = {
     const { error } = await sb.rpc("mark_trip_done", { p_trip_id: tripId, p_done: done });
     if(error) throw error;
   },
+  async myFeedback(ids){
+    if(!me || !ids.length) return {};
+    if(DEMO) return Object.fromEntries((demoState.feedback||[]).filter(f=>ids.includes(f.trip_id)).map(f=>[f.trip_id, f]));
+    const { data } = await sb.from("trip_feedback").select("trip_id, role, happened, comment, can_share").in("trip_id", ids);
+    return Object.fromEntries((data||[]).map(f=>[f.trip_id, f]));
+  },
+  async sendFeedback(tripId, happened, comment, canShare){
+    if(DEMO){
+      demoState.feedback = demoState.feedback || [];
+      let f = demoState.feedback.find(x=>x.trip_id===tripId);
+      if(!f){ f = { trip_id: tripId }; demoState.feedback.push(f); }
+      f.happened = happened; if(comment){ f.comment = comment; f.can_share = !!canShare; }
+      return;
+    }
+    const { error } = await sb.rpc("send_trip_feedback", { p_trip_id: tripId, p_happened: happened, p_comment: comment || null, p_can_share: !!canShare });
+    if(error) throw error;
+  },
   async unconfirmedTrips(ids){
     if(!ids.length) return 0;
     if(DEMO) return ids.filter(id => (demoState.members[id]||[]).some(m=>!m.confirmed_at)).length;
@@ -1294,8 +1312,35 @@ function setNav(key){
 }
 /* Aviso en "Mis viajes": viajes que esperan confirmación (como pasajero) o con gente sin confirmar (como conductor).
    Como mucho una consulta por minuto. */
-const needsDone = t => t.status !== "cancelado" && t.done == null && new Date(t.departure_at).getTime() < Date.now()
+const recentPast = t => t.status !== "cancelado" && new Date(t.departure_at).getTime() < Date.now()
   && new Date(t.departure_at).getTime() > Date.now() - 7*864e5;
+const needsDone = t => recentPast(t) && t.done == null;
+/* Ventana de opinión tras el viaje: la base de datos la admite 30 días. */
+const canOpine = t => t.status !== "cancelado" && new Date(t.departure_at).getTime() < Date.now()
+  && new Date(t.departure_at).getTime() > Date.now() - 29*864e5;
+/* Ventana tras responder "¿Se hizo?": comentario opcional, solo lo lee el equipo. */
+function feedbackModal(tripId, happened, role, onDone){
+  const q = happened
+    ? (role === "conductor" ? "¿Quieres contarnos qué tal fue?" : "¿Quieres contarnos qué tal fue el viaje?")
+    : "¿Qué pasó? Nos ayuda a mejorar.";
+  modal(`<h3>Gracias por contárnoslo</h3>
+    <p class="muted">${q} Es opcional y solo lo leemos nosotros.</p>
+    <form id="fbForm">
+      <div class="field"><label for="fbText">Tu comentario</label><textarea id="fbText" maxlength="800" placeholder="${happened ? "Cómo fue, qué te ha servido, qué mejorarías…" : "Si se canceló, si no encontrasteis el punto de encuentro…"}"></textarea></div>
+      ${happened ? `<label class="check small"><input type="checkbox" id="fbShare"><span>Podéis usar mi comentario, sin mi nombre, para dar a conocer ${esc(CFG.siteName)}.</span></label>` : ""}
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px"><button type="button" class="btn secondary" id="fbSkip">Ahora no</button><button class="btn" id="fbSend">Enviar</button></div>
+    </form>`);
+  setTimeout(() => $("#fbText")?.focus(), 30);
+  $("#fbSkip").onclick = () => { closeModal(); onDone && onDone(); };
+  $("#fbForm").onsubmit = async e => {
+    e.preventDefault();
+    const text = $("#fbText").value.trim();
+    if(!text){ closeModal(); onDone && onDone(); return; }
+    $("#fbSend").disabled = true;
+    try{ await api.sendFeedback(tripId, happened, text, !!$("#fbShare")?.checked); closeModal(); toast("Gracias. Lo leeremos con calma.", "ok"); onDone && onDone(); }
+    catch(err){ $("#fbSend").disabled = false; toast(err.message || "No se pudo enviar", "err"); }
+  };
+}
 let badgeAt = 0;
 async function updateBadge(force){
   if(!me){ setBadge(0); return; }
@@ -1307,6 +1352,8 @@ async function updateBadge(force){
     let n = riding.filter(t => live(t) && !t.my_confirmed_at).length;
     n += await api.unconfirmedTrips(driving.filter(t => live(t) && t.seats_taken > 0).map(t => t.id));
     n += driving.filter(needsDone).length;
+    const rides = riding.filter(recentPast);
+    if(rides.length){ const fb = await api.myFeedback(rides.map(t => t.id)); n += rides.filter(t => !fb[t.id]).length; }
     setBadge(n);
   }catch(_){}
 }
@@ -2047,7 +2094,7 @@ async function viewTrip(id){
   let t = await api.getTrip(id);
   const gone = () => { app.innerHTML = `<section class="page narrow"><div class="wrap"><div class="empty"><h3>Este viaje ya no está disponible</h3><p>Puede que el conductor lo haya eliminado. <a href="#/">Busca otro viaje</a>.</p></div></div></section>`; };
   if(!t){ gone(); return; }
-  let members = [], msgs = [], groupLink = "", editingLink = false;
+  let members = [], msgs = [], groupLink = "", editingLink = false, myFb = null;
   let tripPrefs = me ? await api.notifyPrefs().catch(() => null) : null;
   async function refresh(){
     const fresh = await api.getTrip(id);
@@ -2057,6 +2104,7 @@ async function viewTrip(id){
     const amMember = me && members.some(m=>m.user_id===me.id);
     const part = amMember || isDriver(t);
     [msgs, groupLink] = part ? await Promise.all([api.messages(id), api.getGroupLink(id).catch(()=> "")]) : [[], ""];
+    myFb = part && canOpine(t) ? (await api.myFeedback([id]).catch(() => ({})))[id] || null : null;
     const draft = $("#chatInput")?.value || "", hadFocus = document.activeElement?.id === "chatInput";
     render(amMember);
     if($("#chatInput")){ $("#chatInput").value = draft; if(hadFocus) $("#chatInput").focus(); }
@@ -2067,6 +2115,10 @@ async function viewTrip(id){
     const x = driver ? `<button class="mx" data-remove="${esc(m.user_id)}" data-name="${esc(m.display_name||"Viajero")}" aria-label="Quitar a ${esc(m.display_name||"este viajero")} del viaje" title="Quitar del viaje">${X_ICON}</button>`
             : self ? `<button class="mx" data-leave aria-label="Ya no viajo" title="Ya no viajo">${X_ICON}</button>` : "";
     return `<li class="member-row${self?" self":""}"><span class="avatar">${m.avatar_url?`<img src="${esc(m.avatar_url)}" alt="" referrerpolicy="no-referrer">`:initials(m.display_name)}</span><span class="mname">${esc(m.display_name||"Viajero")}${self?" (tú)":""}</span>${state}${x}</li>`;
+  }
+  function fbLine(){
+    if(myFb && myFb.comment) return `<p class="small muted fb-line">Gracias por tu comentario. Lo leemos nosotros.</p>`;
+    return `<p class="small muted fb-line">¿Quieres contarnos qué tal fue? <button type="button" class="linklike" data-fb>Escríbenos un comentario</button>. Solo lo leemos nosotros.</p>`;
   }
   function render(amMember){
     const free = t.seats_total - t.seats_taken;
@@ -2096,10 +2148,15 @@ async function viewTrip(id){
         <button class="btn secondary" id="cancelBtn">Cancelar viaje</button>
         <button class="btn danger" id="deleteBtn">Eliminar</button>
       </div>`;
-    else if(amMember) action = `${past ? `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>` : confirmBox(t, mine)}<button class="btn secondary block" id="leaveBtn" style="margin-top:12px">${X_ICON} Ya no viajo</button>`;
+    else if(amMember && past) action = !canOpine(t) ? `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>`
+      : !myFb ? `<div class="done-ask"><b>¿Hiciste este viaje?</b><p class="small muted">Nos ayuda a saber cuánta gente ha podido viajar gracias a la web.</p><div class="done-btns"><button class="btn accent" data-ride="1">Sí, viajé</button><button class="btn secondary" data-ride="0">Al final no viajé</button></div></div>`
+      : `<div class="notice${myFb.happened ? " ok" : ""}">${myFb.happened ? CHECK_ICON : ICON.info}<div>${myFb.happened ? "<b>Gracias por contárnoslo.</b> Nos alegra que hayas podido viajar." : "Gracias por avisar."}</div></div>${fbLine()}`;
+    else if(amMember) action = `${confirmBox(t, mine)}<button class="btn secondary block" id="leaveBtn" style="margin-top:12px">${X_ICON} Ya no viajo</button>`;
     else if(past) action = `<div class="notice">${ICON.info}<div>Este viaje ya ha salido.</div></div>`;
     else if(full) action = `<div class="notice">${ICON.info}<div>Viaje completo. Si alguien se desapunta, volverá a abrirse. <a href="#/?o=${encodeURIComponent(t.origin_city)}&d=${encodeURIComponent(t.dest_city)}">Buscar alternativas</a>.</div></div>`;
     else action = `<button class="btn accent block" id="joinBtn">Apuntarme a este viaje</button>${me && !(tripPrefs && tripPrefs.trip_updates) ? `<label class="check small join-notify"><input type="checkbox" id="joinNotify"><span>Avísame por correo si el viaje cambia o se cancela, y cuando toque confirmar.</span></label>` : ""}<p class="small muted" style="margin:10px 0 0;text-align:center">Entrarás en el grupo privado del viaje. 48 horas antes de salir te pediremos que confirmes; si cambias de planes, pulsa "Ya no viajo" y la plaza queda libre.</p>`;
+
+    if(driver && past && !cancelled && t.done != null && canOpine(t)) action += fbLine();
 
     const canShare = !cancelled && !past && !t.blocked;
     const shareHtml = !canShare ? "" : driver
@@ -2178,9 +2235,22 @@ async function viewTrip(id){
     document.querySelectorAll("[data-done]").forEach(b => b.onclick = async () => {
       const done = b.dataset.done === "1";
       document.querySelectorAll("[data-done]").forEach(x => x.disabled = true);
-      try{ await api.markDone(id, done); toast(done ? "¡Gracias por hacer hueco!" : "Gracias por avisar", "ok"); updateBadge(true); }
-      catch(err){ toast(err.message, "err"); }
+      try{ await api.markDone(id, done); updateBadge(true); }
+      catch(err){ toast(err.message, "err"); await refresh(); return; }
       await refresh();
+      feedbackModal(id, done, "conductor", refresh);
+    });
+    document.querySelectorAll("[data-ride]").forEach(b => b.onclick = async () => {
+      const ok = b.dataset.ride === "1";
+      document.querySelectorAll("[data-ride]").forEach(x => x.disabled = true);
+      try{ await api.sendFeedback(id, ok); updateBadge(true); }
+      catch(err){ toast(err.message, "err"); await refresh(); return; }
+      await refresh();
+      feedbackModal(id, ok, "pasajero", refresh);
+    });
+    document.querySelectorAll("[data-fb]").forEach(b => b.onclick = () => {
+      const happened = driver ? !!t.done : !!(myFb && myFb.happened);
+      feedbackModal(id, happened, driver ? "conductor" : "pasajero", refresh);
     });
     if($("#reportBtn")) $("#reportBtn").onclick = () => {
       if(!me){ requireLogin(`Para reportar necesitamos saber quién eres, así evitamos avisos falsos. Si lo prefieres, escríbenos a ${CFG.contactEmail}.`); return; }
@@ -2314,15 +2384,21 @@ async function viewMine(){
   };
   const dr = upcoming(driving), rd = upcoming(riding);
   const pendingDone = driving.filter(needsDone);
+  const pastRides = riding.filter(recentPast);
+  const rideFb = await api.myFeedback(pastRides.map(t => t.id)).catch(() => ({}));
+  const pendingRide = pastRides.filter(t => !rideFb[t.id]);
+  const doneRow = (t, kind) => `<li><span><b>${esc(t.origin_city)} → ${esc(t.dest_city)}</b> <span class="small muted">${kind === "ride" ? "Ibas de pasajero · " : ""}${esc(fmtDayShort(t.departure_at))}, ${fmtTime(t.departure_at)}</span></span><span class="done-btns">${kind === "ride"
+    ? `<button class="btn sm accent" data-mride="${t.id}|1">Sí, viajé</button><button class="btn sm secondary" data-mride="${t.id}|0">No viajé</button>`
+    : `<button class="btn sm accent" data-mdone="${t.id}|1">Sí, se hizo</button><button class="btn sm secondary" data-mdone="${t.id}|0">No se hizo</button>`}</span></li>`;
   const due = rd.filter(t => t.status !== "cancelado" && !t.my_confirmed_at && inConfirmWindow(t));
   const NEED = { diario:"A diario", semanal:"Cada semana", puntual:"Una vez" };
   app.innerHTML = `<section class="page"><div class="wrap">
     <h1>Mis viajes</h1>
     ${due.length ? `<div class="notice" style="margin-bottom:8px">${ICON.info}<div><b>${due.length===1?"Tienes un viaje por confirmar.":`Tienes ${due.length} viajes por confirmar.`}</b> El conductor ve quién ha confirmado, así sabe que cuenta contigo.</div></div>` : ""}
-    ${pendingDone.length ? `<div class="panel box done-list" style="margin-top:20px">
-      <h3>¿Se hicieron estos viajes?</h3>
-      <p class="small muted">Confírmalo para que sepamos cuántos viajes se hacen de verdad.</p>
-      <ul>${pendingDone.map(t => `<li><span><b>${esc(t.origin_city)} → ${esc(t.dest_city)}</b> <span class="small muted">${esc(fmtDayShort(t.departure_at))}, ${fmtTime(t.departure_at)}</span></span><span class="done-btns"><button class="btn sm accent" data-mdone="${t.id}|1">Sí, se hizo</button><button class="btn sm secondary" data-mdone="${t.id}|0">No se hizo</button></span></li>`).join("")}</ul>
+    ${pendingDone.length || pendingRide.length ? `<div class="panel box done-list" style="margin-top:20px">
+      <h3>${pendingDone.length + pendingRide.length === 1 ? "¿Se hizo este viaje?" : "¿Se hicieron estos viajes?"}</h3>
+      <p class="small muted">Contestar nos ayuda a saber cuánta gente ha podido viajar gracias a la web.</p>
+      <ul>${pendingDone.map(t => doneRow(t, "drive")).join("")}${pendingRide.map(t => doneRow(t, "ride")).join("")}</ul>
     </div>` : ""}
     <h2 style="margin-top:28px">Voy de pasajero</h2>
     ${rd.length ? `<div class="trips">${rd.map(ridingCard).join("")}</div>` : `<div class="empty"><p>No estás apuntado a ningún viaje. <a href="#/">Busca uno</a>.</p></div>`}
@@ -2359,9 +2435,16 @@ async function viewMine(){
   document.querySelectorAll("[data-mdone]").forEach(b => b.onclick = async () => {
     const [tid, v] = b.dataset.mdone.split("|");
     b.closest("li").querySelectorAll("button").forEach(x => x.disabled = true);
-    try{ await api.markDone(tid, v === "1"); toast(v === "1" ? "¡Gracias por hacer hueco!" : "Gracias por avisar", "ok"); updateBadge(true); }
-    catch(err){ toast(err.message, "err"); }
-    viewMine();
+    try{ await api.markDone(tid, v === "1"); updateBadge(true); }
+    catch(err){ toast(err.message, "err"); viewMine(); return; }
+    viewMine(); feedbackModal(tid, v === "1", "conductor");
+  });
+  document.querySelectorAll("[data-mride]").forEach(b => b.onclick = async () => {
+    const [tid, v] = b.dataset.mride.split("|");
+    b.closest("li").querySelectorAll("button").forEach(x => x.disabled = true);
+    try{ await api.sendFeedback(tid, v === "1"); updateBadge(true); }
+    catch(err){ toast(err.message, "err"); viewMine(); return; }
+    viewMine(); feedbackModal(tid, v === "1", "pasajero");
   });
   const prefSave = async (trip, alerts, el) => {
     el.disabled = true;
@@ -2593,6 +2676,7 @@ function viewLegal(which){
         <li><strong>Datos de participación</strong>: si confirmas tu plaza, la fecha de confirmación; si el conductor te quita de un viaje, ese hecho, para que no puedas volver a apuntarte a ese mismo viaje; el enlace a un grupo externo que el conductor decida compartir, visible solo para los participantes.</li>
         <li><strong>Firmas por falta de transporte</strong>: el trayecto, la frecuencia que indiques y las coordenadas aproximadas de las dos localidades (para avisarte de viajes cercanos). Solo se publican totales por trayecto; nunca quién ha firmado.</li>
         <li><strong>Avisos por correo</strong>: tus preferencias de avisos, si has pedido alertas de ruta, cuándo diste ese consentimiento y hasta cuándo dura, y un registro de los avisos enviados (tipo, fecha y resultado del envío).</li>
+        <li><strong>Opiniones tras el viaje</strong>: si contestas si un viaje se hizo, tu respuesta, el trayecto y la fecha, y el comentario que escribas, si lo haces. Solo lo lee el titular. Si marcas la casilla, podemos citar tu comentario sin tu nombre para dar a conocer la iniciativa.</li>
         <li><strong>Reportes</strong>: si reportas un viaje o a una persona, guardamos quién reporta, el motivo, lo que escribas y una referencia al viaje. Solo los ve el titular para revisarlos; la persona reportada no sabe quién ha avisado.</li>
       </ul>
       <p><strong>No solicitamos ni almacenamos números de teléfono.</strong> Si decides compartir tu teléfono u otros datos dentro del grupo privado de un viaje, lo haces voluntariamente y bajo tu responsabilidad.</p>
@@ -2606,6 +2690,7 @@ function viewLegal(which){
         <li>Enviarte avisos por correo sobre los viajes en los que participas (cancelaciones, cambios, confirmaciones y pasajeros), solo si los pides: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al publicar o al apuntarte, o en "Mis viajes". Puedes retirarlo en "Mis viajes" o con el enlace de cada correo.</li>
         <li>Enviarte alertas de viajes nuevos en las rutas que has pedido: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al firmar. Duran 15 días y puedes retirarlas en cualquier momento.</li>
         <li>Enviarte un correo de agradecimiento después de un viaje que conduces: <strong>consentimiento</strong> (art. 6.1.a RGPD), que das marcando la casilla al publicarlo.</li>
+        <li>Saber si los viajes se hacen y mejorar el servicio con tus comentarios: <strong>interés legítimo</strong> (art. 6.1.f RGPD); contestar es voluntario. Citar tu comentario sin tu nombre: <strong>consentimiento</strong> (art. 6.1.a RGPD), que puedes retirar escribiéndonos.</li>
       </ul>
       <p>No utilizamos tus datos con fines publicitarios, no elaboramos perfiles y no los cedemos a terceros con fines comerciales.</p>
       <h2>Encargados y transferencias</h2>
@@ -2619,7 +2704,7 @@ function viewLegal(which){
         <li>Para saber cuántas personas visitan la web usamos <strong>Vercel Web Analytics</strong>, que cuenta visitas de forma agregada y anónima (página visitada, país, tipo de dispositivo y web de procedencia), sin cookies y sin identificarte.</li>
       </ul>
       <h2>Conservación</h2>
-      <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. El registro de avisos enviados se borra a los 30 días. Los reportes se conservan mientras se revisan y hasta 90 días después de cerrarlos, salvo que haya que conservarlos por una obligación legal. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
+      <p>Los viajes y sus mensajes se eliminan a los 30 días de la fecha de salida. El registro de avisos enviados se borra a los 30 días. Las opiniones tras el viaje se conservan sin el viaje hasta que borres tu cuenta, como máximo 12 meses. Los reportes se conservan mientras se revisan y hasta 90 días después de cerrarlos, salvo que haya que conservarlos por una obligación legal. Tu cuenta se conserva mientras no la elimines. Puedes borrarla desde la sección "Mis viajes" en cualquier momento; con ella se eliminan tus viajes, inscripciones y mensajes. Cuando la iniciativa deje de ser necesaria, se eliminará la totalidad de los datos.</p>
       <h2>Tus derechos</h2>
       <p>Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a <a href="mailto:${mail}">${mail}</a>. También puedes reclamar ante la Agencia Española de Protección de Datos (<a href="https://www.aepd.es" target="_blank" rel="noopener">www.aepd.es</a>).</p>
       <h2>Cookies</h2>
