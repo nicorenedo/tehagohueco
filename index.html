@@ -36,12 +36,6 @@ window.CAMINO_CONFIG = {
   supabaseUrl: "https://dbmqyczwjuahlydbfgtm.supabase.co",
   supabaseAnonKey: "sb_publishable_IBV9ny5inC9MFPl5kJE1mw_Ql3Epku3",
   contactEmail: "tehagohueco.contacto@gmail.com",
-  /* Costes de mantenimiento que se piden en "Cómo ayudar". Cuando alguien cubra uno, rellena coveredBy. */
-  helpCosts: [
-    { name: "Alojamiento de la web", service: "Vercel Pro", what: "Que la web aguante miles de visitas al día sin caerse.", monthly: 20, coveredBy: "" },
-    { name: "Base de datos y cuentas", service: "Supabase Pro", what: "Guardar viajes y cuentas de forma segura, con copias de seguridad diarias.", monthly: 25, coveredBy: "" },
-    { name: "Avisos por correo", service: "Resend Pro", what: "Enviar los avisos de cancelaciones y cambios sin límite diario.", monthly: 20, coveredBy: "" }
-  ],
   /* Marcas y asociaciones que han ayudado: { name: "…", what: "…", url: "https://…" } */
   supporters: [],
   // Clave gratuita de CARTO Basemaps (carto.com/basemaps/apikey). Sin ella se usa el mapa de OpenStreetMap.
@@ -611,13 +605,7 @@ legend{font-size:var(--step-lead);font-weight:600;letter-spacing:-.02em;margin-b
 .done-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0}
 /* Red de seguridad: nada del contenido puede ensanchar la página en el móvil. */
 main#app{overflow-x:clip}
-.legal .help-costs{list-style:none;padding:0;margin:16px 0 10px;max-width:62ch;display:grid;gap:10px}
-.help-costs li{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;background:var(--surface);border-radius:14px;padding:14px 16px}
-.help-costs .hc-price{text-align:right;white-space:nowrap;font-weight:600}
-.help-costs .hc-ok{color:var(--ok);font-weight:600;white-space:normal}
-.help-costs li.covered{background:var(--ok-soft)}
 #ayudar{scroll-margin-top:84px}
-@media (max-width:520px){.help-costs li{flex-direction:column;gap:6px}.help-costs .hc-price{text-align:left}}
 </style>
 </head>
 <body>
@@ -2477,10 +2465,7 @@ async function resumePendingSign(){
 
 /* ---------------- Vista: cómo funciona ---------------- */
 function helpSection(){
-  const costs = CFG.helpCosts || [], sup = CFG.supporters || [];
-  const usd = n => `${n.toLocaleString("es-ES")} $`;
-  const pending = costs.filter(c => !c.coveredBy);
-  const monthly = pending.reduce((a, c) => a + c.monthly, 0);
+  const sup = CFG.supporters || [];
   return `<h2 id="ayudar">Cómo ayudar</h2>
     <p>${esc(CFG.siteName)} es gratis para todo el mundo: no tiene publicidad ni cobra comisiones a quien conduce o a quien viaja, y no lo va a hacer.</p>
     <h3>Si vas a viajar</h3>
@@ -2490,13 +2475,14 @@ function helpSection(){
       <li>Si no encuentras viaje, <a href="#/transporte">firma tu ruta</a> para que se vea la demanda.</li>
     </ul>
     <h3>Si no vas a viajar pero quieres ayudar</h3>
-    <p>Mantener la web funcionando con tanto tráfico, y con los datos de todos bien protegidos, tiene unos costes de suscripción. Si eres una marca, una empresa o una asociación y quieres cubrir alguno, escríbenos a <a href="mailto:${esc(CFG.contactEmail)}">${esc(CFG.contactEmail)}</a>.</p>
-    <ul class="help-costs">${costs.map(c => `<li class="${c.coveredBy ? "covered" : ""}">
-      <div><b>${esc(c.name)}</b> <span class="muted">(${esc(c.service)})</span><br><span class="small muted">${esc(c.what)}</span></div>
-      <div class="hc-price">${c.coveredBy ? `<span class="hc-ok">Cubierto por ${esc(c.coveredBy)}</span>` : `${usd(c.monthly)} al mes<br><span class="small muted">${usd(c.monthly * 12)} al año</span>`}</div>
-    </li>`).join("")}</ul>
-    ${pending.length ? `<p class="small muted">En total, ${usd(monthly)} al mes, unos ${usd(monthly * 12)} al año. Se pagan en dólares a cada proveedor.</p>` : `<p class="small muted">Ahora mismo todos los costes están cubiertos. Gracias.</p>`}
-    <p>Preferimos que cubras directamente una suscripción, pagándola o regalándonos créditos, antes que recibir dinero. Y no aceptaremos más de lo necesario: cuando un coste quede cubierto, lo indicaremos aquí y dejaremos de pedirlo.</p>
+    <p>Mantener la web funcionando con tanto tráfico, y con los datos de todos bien protegidos, tiene unos costes de mantenimiento:</p>
+    <ul>
+      <li>El alojamiento de la web, para que aguante miles de visitas al día sin caerse.</li>
+      <li>La base de datos, con copias de seguridad diarias, para guardar viajes y cuentas de forma segura.</li>
+      <li>El envío de los avisos por correo, para quien los pide.</li>
+    </ul>
+    <p>Si eres una marca, una empresa o una asociación y quieres cubrir alguno, escríbenos a <a href="mailto:${esc(CFG.contactEmail)}">${esc(CFG.contactEmail)}</a> y te contamos qué hace falta y cuánto cuesta.</p>
+    <p>Preferimos que cubras directamente un servicio antes que recibir dinero. Y no aceptaremos más de lo necesario: cuando un coste quede cubierto, dejaremos de pedirlo.</p>
     <h3>Quién nos ayuda</h3>
     ${sup.length ? `<ul>${sup.map(x => `<li><b>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</b>${x.what ? `: ${esc(x.what)}` : ""}</li>`).join("")}</ul><p class="small muted">Gracias de corazón por hacerlo posible.</p>`
       : `<p>Las marcas y asociaciones que colaboren aparecerán aquí, con lo que han cubierto, como agradecimiento.</p>`}`;
