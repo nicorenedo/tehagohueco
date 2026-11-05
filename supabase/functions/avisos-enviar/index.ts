@@ -103,6 +103,22 @@ function compose(j: Job) {
         : { label: "Publicar el trayecto otra vez", url: `${SITE}/#/publicar?o=${encodeURIComponent(t.origin_city)}&d=${encodeURIComponent(t.dest_city)}` };
       break;
     }
+    case "prensa": {
+      // Correo único y personal (lo firma Nico) para pedir una opinión breve a un medio.
+      // Solo a quien activó los avisos de sus viajes; las respuestas llegan al correo de contacto.
+      const driver = j.payload.role === "conductor";
+      const hiP = firstName(j.name) ? `Hola, ${firstName(j.name)},` : "Hola,";
+      subject = "¿Qué tal fue tu viaje?";
+      lines = [
+        driver
+          ? `Soy Nico, el que hizo Te Hago Hueco. Te escribo porque hace unos días llevaste a gente en tu viaje de ${route}.`
+          : `Soy Nico, el que hizo Te Hago Hueco. Te escribo porque hace unos días tenías un viaje de ${route} en la web.`,
+        "Una periodista está escribiendo sobre la iniciativa y le gustaría incluir la opinión de alguien que la haya usado. Sería algo breve y por escrito, un par de frases sobre cómo te fue. Si tu viaje salió bien y te apetece, contéstame a este correo y te paso su contacto.",
+        "Si no te interesa, ignora este correo tranquilamente. No volveré a escribirte por esto.",
+        "Gracias por hacer hueco,",
+        "Nico"];
+      return finish(j, subject, hiP, lines, { label: "", url: "" }, [], "");
+    }
     case "alerta": {
       const trips: any[] = j.extra.trips || [];
       subject = trips.length === 1
@@ -125,7 +141,7 @@ function finish(j: Job, subject: string, hi: string, lines: string[], cta: { lab
     : "Recibes este correo porque participas en un viaje de Te Hago Hueco.";
   const stop = j.grp === "alertas" ? "Dejar de recibir alertas de ruta" : "Dejar de recibir avisos de mis viajes";
 
-  const text = [hi, "", ...lines, ...items.map(i => `- ${i.text} ${i.url}`), "", `${cta.label}: ${cta.url}`, ...(note ? ["", note] : []),
+  const text = [hi, "", ...lines, ...items.map(i => `- ${i.text} ${i.url}`), ...(cta.label ? ["", `${cta.label}: ${cta.url}`] : []), ...(note ? ["", note] : []),
     "", "--", why, `${stop}: ${unsubUrl}`, "También puedes cambiarlo en Mis viajes, en la web.",
     "Te Hago Hueco es una iniciativa solidaria sin ánimo de lucro. Si respondes a este correo, nos llega a nosotros."].join("\n");
 
@@ -138,8 +154,8 @@ function finish(j: Job, subject: string, hi: string, lines: string[], cta: { lab
 <tr><td style="padding:12px 26px 8px">
 ${p(hi)}${lines.map(p).join("")}
 ${items.length ? `<ul style="margin:0 0 16px;padding-left:20px">${items.map(i => `<li style="margin:0 0 8px;font-size:16px;line-height:1.45;color:#1f1917"><a href="${esc(i.url)}" style="color:#2f4a58">${esc(i.text)}</a></li>`).join("")}</ul>` : ""}
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px"><tr><td style="background:#e0a912;border-radius:999px">
-<a href="${esc(cta.url)}" style="display:inline-block;padding:12px 22px;font-size:16px;font-weight:600;color:#1f1917;text-decoration:none">${esc(cta.label)}</a></td></tr></table>
+${cta.label ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px"><tr><td style="background:#e0a912;border-radius:999px">
+<a href="${esc(cta.url)}" style="display:inline-block;padding:12px 22px;font-size:16px;font-weight:600;color:#1f1917;text-decoration:none">${esc(cta.label)}</a></td></tr></table>` : ""}
 ${note ? `<p style="margin:0 0 14px;font-size:14px;line-height:1.5;color:#5b534d">${esc(note)}</p>` : ""}
 </td></tr>
 <tr><td style="padding:16px 26px 24px;background:#f4f0e9;border-radius:0 0 16px 16px;font-size:13px;line-height:1.5;color:#5b534d">
